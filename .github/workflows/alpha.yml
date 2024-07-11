@@ -1,0 +1,11 @@
+name: Alpha
+on:
+  push:
+    branches: [ 'main' ]
+
+jobs:
+  build:
+    - uses: actions/checkout@v4
+
+    - name: Set alpha version
+      run: npm version prerelease
