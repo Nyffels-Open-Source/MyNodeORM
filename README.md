@@ -19,6 +19,7 @@ For major changes, please open an issue first to discuss what you would like to 
 MIT -  Copyright (c) 2023 Nyffels BV
 
 ## Dependencies
+- NodeJS
 - MySQL2 (https://www.npmjs.com/package/mysql2)
 - Lodash (https://www.npmjs.com/package/lodash)
 

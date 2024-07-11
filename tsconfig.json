@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "esModuleInterop": true,
-    "target": "es2022",
+    "target": "es6",
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "dist",
@@ -16,5 +16,5 @@
     "declarationMap": true
   },
   "include": ["src/index.ts"],
-  "lib": ["es2022"],
+  "lib": ["es6"],
 }
