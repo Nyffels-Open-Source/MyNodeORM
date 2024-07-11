@@ -1,0 +1,39 @@
+{
+  "name": "@nyffels/mysql-query-builder",
+  "version": "1.0.0-alpha.0",
+  "description": "The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL database and build dynamic queries fast and easy.",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "url": "https://github.com/Nyffels-IT/mysql-query-builder",
+    "type": "git"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "keywords": [
+    "mysql",
+    "mysql2",
+    "query",
+    "builder",
+    "query builder"
+  ],
+  "author": "Nyffels BV",
+  "contributors": [
+    {
+      "email": "chesney@nyffels.be",
+      "name": "Chesney nyffels",
+      "url": "https://nyffels.be"
+    }
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.199",
+    "lodash": "^4.17.21",
+    "mysql2": "^3.6.1"
+  }
+}
