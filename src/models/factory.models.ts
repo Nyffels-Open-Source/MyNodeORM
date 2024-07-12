@@ -3,3 +3,4 @@ export class Factory {
         return new type();
     }
 }
+
