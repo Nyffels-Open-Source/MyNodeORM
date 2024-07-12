@@ -1,12 +1,20 @@
 import {getColumn, getTable} from "../decorators";
 import _ from "lodash";
+import {doQuery} from "../logic";
 
+/**
+ * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
+ */
 export class QueryBuilder {
     private _classObject: any;
 
     private _selectQueryString: string = "*";
     private _orderByQuerySting: string | null = null;
     private _limitByQueryString: string | null = null;
+    private _whereGroups: string[] = [];
+
+    private _single = false;
+    private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
 
     /**
      * Create a querybuilder for easy and fast quey building based on the decoration methode for links between class properties and database columns
@@ -15,6 +23,8 @@ export class QueryBuilder {
     constructor(classObject: any) {
         this._classObject = classObject;
     }
+
+    /* Builders */
 
     /**
      * Add the fields by property keys of the loaded class to the select query.
@@ -42,7 +52,79 @@ export class QueryBuilder {
             }
         });
         this._selectQueryString = columns.filter(c => c !== null).join(", ");
+        this._queryType = 'SELECT';
         return this;
+    }
+
+    /**
+     * Give a raw query that will be pasted as is in between SELECT and FROM.
+     */
+    public selectRaw(selectQuery: string) {
+        this._selectQueryString = selectQuery;
+    }
+
+    /**
+     * Create a where Query. Multiple Where functions are allowed and will be combined with the OR element.
+     * Every group is an isolated logic with different values that ae combined with the AND element.
+     * @param group The where group existing from one or multiple properties.
+     */
+    public where(group: WhereGroup) {
+        let fragments: string[] = [];
+        for (let property of Object.keys(group)) {
+            const content = group[property];
+            if (_.isArray(content.value)) {
+                if (_.isNil(content.type)) {
+                    content.type = WhereCompareType.IN;
+                }
+
+                if (![WhereCompareType.IN, WhereCompareType.BETWEEN, WhereCompareType.NOTIN, WhereCompareType.NOTBETWEEN].includes(content.type)) {
+                    console.error("Incorrect usage of value and comparetype combination.");
+                    continue;
+                } else if ((content.value ?? []).length !== 2 && [WhereCompareType.BETWEEN, WhereCompareType.NOTBETWEEN].includes(content.type)) {
+                    console.error("Between types requires an exact value array length of 2.");
+                    continue;
+                }
+
+                switch (content.type) {
+                    case WhereCompareType.BETWEEN:
+                    case WhereCompareType.NOTBETWEEN: {
+                        fragments.push(`${getColumn(this._classObject, property)} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`)
+                        break;
+                    }
+                    case WhereCompareType.IN:
+                    case WhereCompareType.NOTIN: {
+                        fragments.push(`${getColumn(this._classObject, property)} ${content.type} (${content.value.map(v => parseValue(this._classObject, property, v)).join(", ")})`);
+                        break;
+                    }
+                }
+            } else {
+                if (_.isNil(content.type)) {
+                    content.type = WhereCompareType.EQUAL;
+                }
+
+                const propertyType = getType(this._classObject, property);
+                if (![WhereCompareType.LESSEQUAL, WhereCompareType.LESS, WhereCompareType.LIKE, WhereCompareType.NOTLIKE, WhereCompareType.EQUAL, WhereCompareType.GREATEREQUAL].includes(content.type)) {
+                    console.error("Incorrect usage of value and comparetype combination.");
+                    continue;
+                } else if (propertyType !== "string" && [WhereCompareType.LIKE || WhereCompareType.NOTLIKE].includes(content.type)) {
+                    console.error("String compare is used on a non string value.");
+                    continue;
+                }
+
+                fragments.push(`${getColumn(this._classObject, property)} ${content.type} ${parseValue(this._classObject, property, content.value)}`);
+            }
+        }
+
+        this._whereGroups.push(fragments.join(" AND "));
+        return this;
+    }
+
+    /**
+     * Give a raw query that will be pasted in the where group and be combined with the other where's with the OR element.
+     * @param whereQuery
+     */
+    public whereRaw(whereQuery: string) {
+        this._whereGroups.push(whereQuery);
     }
 
     /**
@@ -64,31 +146,87 @@ export class QueryBuilder {
 
     /**
      * Generate the limit, with offset option, part of the query.
+     * This function disables the function "single".
      * @param limit The limit of the rows you wisch to fetch
      * @param offset The offset of rows you wish to skip
      */
-    public limit(limit: number, offset: number | null = null) {
+    public limit(limit: number, offset: number = null) {
         this._limitByQueryString = `LIMIT ${limit}`;
         if (offset !== null) {
             this._limitByQueryString += ` OFFSET ${offset}`;
         }
 
+        this._single = false;
         return this;
     }
 
-    /* Output elements */
+    /**
+     * Mark this builder as a single value request
+     * This does not work together with the function "limit";
+     */
+    public single() {
+        this._limitByQueryString = 'LIMIT 1';
+        this._single = true;
+        return this;
+    }
+
+    /* Outputs */
+
     /**
      * Generate a select query.
      */
-    public generateSelectQuery(): string {
-        let query = `SELECT ${this._selectQueryString ?? '*'} FROM ${getTable(this._classObject)}`;
-        if (this._limitByQueryString !== null) {
-            query += ' ' + this._limitByQueryString;
+    public generateSelectQuery() {
+        let query = `SELECT ${this._selectQueryString ?? '*'}
+                     FROM ${getTable(this._classObject)}`;
+
+        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
+        if ((this._whereGroups ?? []).length > 0) {
+            if (this._whereGroups.length === 1) {
+                query += ` WHERE ${this._whereGroups.find(x => x)}`;
+            } else {
+                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
+            }
         }
+
         if (this._orderByQuerySting !== null) {
             query += ' ' + this._orderByQuerySting;
         }
+
+        if (this._limitByQueryString !== null) {
+            query += ' ' + this._limitByQueryString;
+        }
+
         return query;
+    }
+
+    /**
+     * Execute the builded query.
+     */
+    public async execute() {
+        // TODO
+        switch (this._queryType) {
+            case 'SELECT': {
+                const selectQuery = this.generateSelectQuery();
+                const queryRes = await doQuery(selectQuery);
+                throw new Error("Not yet available");
+                break;
+            }
+            case 'UPDATE': {
+                // TODO
+                throw new Error("Not yet available");
+                break;
+            }
+            case 'DELETE': {
+                // TODO
+                throw new Error("Not yet available");
+                break;
+            }
+            case "INSERT": {
+                // TODO
+                throw new Error("Not yet available");
+                break;
+            }
+        }
     }
 }
 
@@ -106,6 +244,33 @@ export class SelectValue {
 export enum OrderByDirection {
     ASC = 'ASC',
     DESC = 'DESC'
+}
+
+/**
+ * A group used to create a where value string.
+ */
+export class WhereGroup {
+    [key: string]: {
+        value: any | any[],
+        type?: WhereCompareType,
+    }
+}
+
+/**
+ * Compare types for a where value.
+ */
+export enum WhereCompareType {
+    EQUAL = "=", // This is the default for single string values
+    LESS = "<",
+    LESSEQUAL = "<=",
+    GREATER = ">",
+    GREATEREQUAL = ">=",
+    LIKE = "LIKE",
+    NOTLIKE = "NOT LIKE",
+    IN = "IN",
+    NOTIN = "NOT IN",
+    BETWEEN = "BETWEEN",
+    NOTBETWEEN = "NOT BETWEEN"
 }
 
 /**
