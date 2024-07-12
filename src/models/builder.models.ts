@@ -1,6 +1,6 @@
-import {getColumn, getTable} from "../decorators";
+import {getColumn, getTable, getType} from "../decorators";
 import _ from "lodash";
-import {doQuery} from "../logic";
+import {doQuery, parseValue} from "../logic";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -150,7 +150,7 @@ export class QueryBuilder {
      * @param limit The limit of the rows you wisch to fetch
      * @param offset The offset of rows you wish to skip
      */
-    public limit(limit: number, offset: number = null) {
+    public limit(limit: number, offset: number | null = null) {
         this._limitByQueryString = `LIMIT ${limit}`;
         if (offset !== null) {
             this._limitByQueryString += ` OFFSET ${offset}`;
