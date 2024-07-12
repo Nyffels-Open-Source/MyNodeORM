@@ -1,0 +1,1 @@
+export type propertyType = 'number' | 'boolean' | 'date'| 'datetime' | 'string';
