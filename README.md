@@ -4,9 +4,7 @@ The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL 
 ## Installation 
 Use the npm package manager to install "MySQL Query Builder" by running the command
 
-<code>
-npm install @nyffels/mysql-query-builder
-</code>
+<code> npm install @nyffels/mysql-query-builder </code>
 
 ## Usage
 The project is currently in alpha version. Because frequent breaking changes, the usage part is missing until it reaches production
