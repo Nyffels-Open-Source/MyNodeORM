@@ -1,6 +1,7 @@
 import {getColumn, getTable, getType} from "../decorators";
 import _ from "lodash";
 import {doQuery, parseValue} from "../logic";
+import {Factory} from "./factory.models";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -202,14 +203,17 @@ export class QueryBuilder {
     /**
      * Execute the builded query.
      */
-    public async execute() {
-        // TODO
+    public async execute<T = any>() {
         switch (this._queryType) {
             case 'SELECT': {
                 const selectQuery = this.generateSelectQuery();
                 const queryRes = await doQuery(selectQuery);
-                throw new Error("Not yet available");
-                break;
+                const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
+                if (this._single) {
+                    return res.find(x => x) as T;
+                } else {
+                    return res as T[];
+                }
             }
             case 'UPDATE': {
                 // TODO
@@ -279,20 +283,25 @@ export enum WhereCompareType {
  * @param results The query results received from the MySQL query.
  * @returns A generated object from the sourceClass value.
  */
-export function queryResultToObject<T = any>(sourceClass: any, results: any[]) {
-    const properties = Object.getOwnPropertyNames(sourceClass);
+export function queryResultToObject<T = any>(classObject: any, results: any[]) {
+    if ((results ?? []).length <= 0) {
+        return [] as T[];
+    }
+
+    const factory = new Factory();
+    const targetClass = factory.create(classObject);
+    const classProperties = Object.getOwnPropertyNames(targetClass);
     const result: any[] = [];
 
-    (results ?? []).forEach((res) => {
-        const resultObject = {} as any;
-        properties.forEach((prop) => {
-            const columnname = getColumn(sourceClass, prop);
-            if (columnname) {
-                resultObject[prop] = res[columnname];
+    (results ?? []).forEach((r) => {
+        const resultObject = factory.create(classObject) as any;
+        classProperties.forEach((p) => {
+            const column = getColumn(classObject, p);
+            if (column) {
+                resultObject[p] = r[column];
             }
         });
         result.push(resultObject);
     });
-
     return (result as T[]);
 }
