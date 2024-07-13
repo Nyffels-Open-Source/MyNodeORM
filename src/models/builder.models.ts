@@ -71,9 +71,9 @@ export class QueryBuilder {
     /**
      * Create a count select query.
      */
-    public count() {
+    public count(alias: string = "count") {
         this._queryType = "SELECT";
-        this._selectQueryString = `COUNT(*)`;
+        this._selectQueryString = `COUNT(*) as ${alias}`;
         return this;
     }
 
