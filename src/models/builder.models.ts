@@ -69,7 +69,7 @@ export class QueryBuilder {
     }
 
     /**
-     * Create a insert query from a with data populated object based on the object given on creation of the QueryBuilder.
+     * Create an insert query from a with data populated object based on the object given on creation of the QueryBuilder.
      * @param source The object with the decorators
      * @param onlyIncludeSourceProperties skip properties that are not present from the insert query.
      */
