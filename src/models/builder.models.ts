@@ -70,11 +70,16 @@ export class QueryBuilder {
 
     /**
      * Create a insert query from a with data populated object based on the object given on creation of the QueryBuilder.
-     * @param source
+     * @param source The object with the decorators
+     * @param onlyIncludeSourceProperties skip properties that are not present from the insert query.
      */
-    public insert(source: any) {
+    public insert(source: any, onlyIncludeSourceProperties = false) {
         this._queryType = "INSERT";
 
+        let sourceProperties: string[] = [];
+        if (onlyIncludeSourceProperties) {
+            sourceProperties = Object.keys(source);
+        }
         const factory = new Factory();
         const targetClass = factory.create(this._classObject);
 
@@ -82,13 +87,17 @@ export class QueryBuilder {
         const columns: string[] = [];
         const values: string[] = [];
 
-        properties.forEach(property => {
+        for (let property of properties) {
+            if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
+                continue;
+            }
+
             const column = getColumn(this._classObject, property);
             const value = parseValue(this._classObject, property, source[property]);
 
             columns.push(column);
             values.push(value);
-        });
+        }
 
         this._insertQueryString = `(${columns.join(', ')}) VALUES (${values.join(', ')})`;
         return this;
@@ -105,22 +114,31 @@ export class QueryBuilder {
 
     /**
      * Create a update query from a with data populated object base on the object given on creation of the QueryBuilder.
-     * @param source
+     * @param source The object with the docarators
+     * @param onlyIncludeSourceProperties skip properties that are not present from the update query.
      */
-    public update(source: any) {
+    public update(source: any, onlyIncludeSourceProperties = false) {
         this._queryType = "UPDATE";
 
+        let sourceProperties: string[] = [];
+        if (onlyIncludeSourceProperties) {
+            sourceProperties = Object.keys(source);
+        }
         const factory = new Factory();
         const targetClass = factory.create(this._classObject);
 
         const fragments: string[] = [];
         const properties = Object.keys(targetClass as any);
 
-        properties.forEach(property => {
+        for (let property of properties) {
+            if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
+                continue;
+            }
+
             const column = getColumn(this._classObject, property);
             const value = parseValue(this._classObject, property, source[property]);
             fragments.push(`${column} = ${value}`);
-        });
+        }
 
         this._updateQueryString = fragments.join(", ");
         return this;
