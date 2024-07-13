@@ -29,3 +29,10 @@ export function queryResultToObject<T = any>(classObject: any, results: any[]) {
     });
     return (result as T[]);
 }
+
+/**
+ * Check if a object has a certain property
+ * @param obj Object to check
+ * @param property Property to check for
+ */
+export const hasProperty = (obj: any, property: string) => Object.values(obj).includes(property);

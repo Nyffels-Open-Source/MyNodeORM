@@ -1,8 +1,7 @@
 import {getColumn, getTable, getType} from "../decorators";
 import _ from "lodash";
-import {doQuery, parseValue} from "../logic";
+import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic";
 import {Factory} from "./factory.models";
-import {queryResultToObject} from "../logic/query";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -11,6 +10,7 @@ export class QueryBuilder {
     private _classObject: any;
 
     private _selectQueryString: string = "*";
+    private _insertQueryString: string | null = null;
     private _orderByQuerySting: string | null = null;
     private _limitByQueryString: string | null = null;
     private _whereGroups: string[] = [];
@@ -19,7 +19,7 @@ export class QueryBuilder {
     private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
 
     /**
-     * Create a querybuilder for easy and fast quey building based on the decoration methode for links between class properties and database columns
+     * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
      * @param classObject The object with the decorators
      */
     constructor(classObject: any) {
@@ -62,7 +62,44 @@ export class QueryBuilder {
      * Give a raw query that will be pasted as is in between SELECT and FROM.
      */
     public selectRaw(selectQuery: string) {
+        this._queryType = "SELECT";
         this._selectQueryString = selectQuery;
+        return this;
+    }
+
+    /**
+     * Create a insert query from a with data populated object based on the object given on creation of the queryBuilder.
+     * @param source
+     */
+    public insert(source?: any) {
+        this._queryType = "INSERT";
+
+        const factory = new Factory();
+        const targetClass = factory.create(this._classObject);
+
+        const properties = Object.keys(targetClass as any);
+        const columns: string[] = [];
+        const values: string[] = [];
+
+        properties.forEach(property => {
+            const column = getColumn(this._classObject, property);
+            const value = parseValue(this._classObject, property, source[property]);
+
+            columns.push(column);
+            values.push(value);
+        });
+
+        this._insertQueryString = `(${columns.join(', ')}) VALUES (${values.join(', ')})`;
+        return this;
+    }
+
+    /**
+     * Do a insert query based on a raw query. Do not include the INSERT INTO {table} part of the query. Only the field and VALUES part.
+     */
+    public insertRaw(insertQuery: string) {
+        this._queryType = "INSERT";
+        this._insertQueryString = insertQuery;
+        return this;
     }
 
     /**
@@ -202,6 +239,13 @@ export class QueryBuilder {
     }
 
     /**
+     * Generate a insert query.
+     */
+    public generateInsertQuery() {
+        return `INSERT INTO ${getTable(this._classObject)} ${this._insertQueryString}`;
+    }
+
+    /**
      * Execute the builded query.
      */
     public async execute() {
@@ -227,9 +271,8 @@ export class QueryBuilder {
                 break;
             }
             case "INSERT": {
-                // TODO
-                throw new Error("Not yet available");
-                break;
+                const insertQuery = this.generateInsertQuery();
+                return await doMutation(insertQuery);
             }
         }
     }
