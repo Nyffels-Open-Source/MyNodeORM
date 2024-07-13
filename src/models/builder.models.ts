@@ -11,6 +11,7 @@ export class QueryBuilder {
 
     private _selectQueryString: string = "*";
     private _insertQueryString: string | null = null;
+    private _updateQueryString: string | null = null;
     private _orderByQuerySting: string | null = null;
     private _limitByQueryString: string | null = null;
     private _whereGroups: string[] = [];
@@ -68,10 +69,10 @@ export class QueryBuilder {
     }
 
     /**
-     * Create a insert query from a with data populated object based on the object given on creation of the queryBuilder.
+     * Create a insert query from a with data populated object based on the object given on creation of the QueryBuilder.
      * @param source
      */
-    public insert(source?: any) {
+    public insert(source: any) {
         this._queryType = "INSERT";
 
         const factory = new Factory();
@@ -103,6 +104,39 @@ export class QueryBuilder {
     }
 
     /**
+     * Create a update query from a with data populated object base on the object given on creation of the QueryBuilder.
+     * @param source
+     */
+    public update(source: any) {
+        this._queryType = "UPDATE";
+
+        const factory = new Factory();
+        const targetClass = factory.create(this._classObject);
+
+        const fragments: string[] = [];
+        const properties = Object.keys(targetClass as any);
+
+        properties.forEach(property => {
+            const column = getColumn(this._classObject, property);
+            const value = parseValue(this._classObject, property, source[property]);
+            fragments.push(`${column} = ${value}`);
+        });
+
+        this._updateQueryString = fragments.join(", ");
+        return this;
+    }
+
+    /**
+     * Do a update query based on a raw query. Do not include UPDATE {table} SET part of the query. Only the field and values parts after SET must be included and no WHERE or filtering.
+     * @param updateQuery
+     */
+    public updateRaw(updateQuery: string) {
+        this._queryType = "UPDATE";
+        this._updateQueryString = updateQuery;
+        return this;
+    }
+
+    /**
      * Mark the build query as a Delete query.
      */
     public delete() {
@@ -119,6 +153,14 @@ export class QueryBuilder {
         let fragments: string[] = [];
         for (let property of Object.keys(group)) {
             const content = group[property];
+
+            let dbColumn = "";
+            if (!_.isNil(content.externalObject)) {
+                dbColumn = getColumn(content.externalObject, property);
+            } else {
+                dbColumn = getColumn(this._classObject, property);
+            }
+
             if (_.isArray(content.value)) {
                 if (_.isNil(content.type)) {
                     content.type = WhereCompareType.IN;
@@ -135,12 +177,12 @@ export class QueryBuilder {
                 switch (content.type) {
                     case WhereCompareType.BETWEEN:
                     case WhereCompareType.NOTBETWEEN: {
-                        fragments.push(`${getColumn(this._classObject, property)} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`)
+                        fragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`)
                         break;
                     }
                     case WhereCompareType.IN:
                     case WhereCompareType.NOTIN: {
-                        fragments.push(`${getColumn(this._classObject, property)} ${content.type} (${content.value.map(v => parseValue(this._classObject, property, v)).join(", ")})`);
+                        fragments.push(`${dbColumn} ${content.type} (${content.value.map(v => parseValue(this._classObject, property, v)).join(", ")})`);
                         break;
                     }
                 }
@@ -158,7 +200,7 @@ export class QueryBuilder {
                     continue;
                 }
 
-                fragments.push(`${getColumn(this._classObject, property)} ${content.type} ${parseValue(this._classObject, property, content.value)}`);
+                fragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value)}`);
             }
         }
 
@@ -270,6 +312,22 @@ export class QueryBuilder {
     }
 
     /**
+     * Generate a update query
+     */
+    public generateUpdateQuery() {
+        let query = `UPDATE ${getTable(this._classObject)} SET ${this._updateQueryString}`;
+        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
+        if ((this._whereGroups ?? []).length > 0) {
+            if (this._whereGroups.length === 1) {
+                query += ` WHERE ${this._whereGroups.find(x => x)}`;
+            } else {
+                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
+            }
+        }
+        return query;
+    }
+
+    /**
      * Execute the builded query.
      */
     public async execute() {
@@ -285,9 +343,8 @@ export class QueryBuilder {
                 }
             }
             case 'UPDATE': {
-                // TODO
-                throw new Error("Not yet available");
-                break;
+                const updateQuery = this.generateUpdateQuery()
+                return await doMutation(updateQuery);
             }
             case 'DELETE': {
                 const deleteQuery = this.generateDeleteQuery();
@@ -324,6 +381,7 @@ export class WhereGroup {
     [key: string]: {
         value: any | any[],
         type?: WhereCompareType,
+        externalObject?: any
     }
 }
 
