@@ -348,7 +348,7 @@ export class QueryBuilder {
     /**
      * Execute the builded query.
      */
-    public async execute() {
+    public async execute<T = any>(): Promise<T> {
         switch (this._queryType) {
             case 'SELECT': {
                 const selectQuery = this.generateSelectQuery();
@@ -357,20 +357,20 @@ export class QueryBuilder {
                 if (this._single) {
                     return res.find(x => x) as typeof this._classObject;
                 } else {
-                    return res as typeof this._classObject[];
+                    return res as typeof this._classObject[] as any;
                 }
             }
             case 'UPDATE': {
                 const updateQuery = this.generateUpdateQuery()
-                return await doMutation(updateQuery);
+                return await doMutation(updateQuery) as any;
             }
             case 'DELETE': {
                 const deleteQuery = this.generateDeleteQuery();
-                return await doMutation(deleteQuery);
+                return await doMutation(deleteQuery) as any;
             }
             case "INSERT": {
                 const insertQuery = this.generateInsertQuery();
-                return await doMutation(insertQuery);
+                return await doMutation(insertQuery) as any;
             }
         }
     }
