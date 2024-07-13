@@ -103,6 +103,14 @@ export class QueryBuilder {
     }
 
     /**
+     * Mark the build query as a Delete query.
+     */
+    public delete() {
+        this._queryType = "DELETE";
+        return this;
+    }
+
+    /**
      * Create a where Query. Multiple Where functions are allowed and will be combined with the OR element.
      * Every group is an isolated logic with different values that ae combined with the AND element.
      * @param group The where group existing from one or multiple properties.
@@ -246,6 +254,22 @@ export class QueryBuilder {
     }
 
     /**
+     * Generate a delete query
+     */
+    public generateDeleteQuery() {
+        let query = `DELETE FROM ${getTable(this._classObject)}`;
+        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
+        if ((this._whereGroups ?? []).length > 0) {
+            if (this._whereGroups.length === 1) {
+                query += ` WHERE ${this._whereGroups.find(x => x)}`;
+            } else {
+                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
+            }
+        }
+        return query;
+    }
+
+    /**
      * Execute the builded query.
      */
     public async execute() {
@@ -266,9 +290,8 @@ export class QueryBuilder {
                 break;
             }
             case 'DELETE': {
-                // TODO
-                throw new Error("Not yet available");
-                break;
+                const deleteQuery = this.generateDeleteQuery();
+                return await doMutation(deleteQuery);
             }
             case "INSERT": {
                 const insertQuery = this.generateInsertQuery();
