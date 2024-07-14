@@ -197,14 +197,6 @@ export class QueryBuilder {
                     content.type = WhereCompareType.IN;
                 }
 
-                if (![WhereCompareType.IN, WhereCompareType.BETWEEN, WhereCompareType.NOTIN, WhereCompareType.NOTBETWEEN].includes(content.type)) {
-                    console.error(`Incorrect usage of value and comparetype combination for property '${property}' of table '${getTable(this._classObject)}'`);
-                    continue;
-                } else if ((content.value ?? []).length !== 2 && [WhereCompareType.BETWEEN, WhereCompareType.NOTBETWEEN].includes(content.type)) {
-                    console.error("Between types requires an exact value array length of 2.");
-                    continue;
-                }
-
                 switch (content.type) {
                     case WhereCompareType.BETWEEN:
                     case WhereCompareType.NOTBETWEEN: {
@@ -220,15 +212,6 @@ export class QueryBuilder {
             } else {
                 if (_.isNil(content.type)) {
                     content.type = WhereCompareType.EQUAL;
-                }
-
-                const propertyType = getType(this._classObject, property);
-                if (![WhereCompareType.LESSEQUAL, WhereCompareType.LESS, WhereCompareType.LIKE, WhereCompareType.NOTLIKE, WhereCompareType.EQUAL, WhereCompareType.GREATEREQUAL].includes(content.type)) {
-                    console.error(`Incorrect usage of value and comparetype combination for property '${property}' of table '${getTable(this._classObject)}'`);
-                    continue;
-                } else if (propertyType !== "string" && [WhereCompareType.LIKE || WhereCompareType.NOTLIKE].includes(content.type)) {
-                    console.error("String compare is used on a non string value.");
-                    continue;
                 }
 
                 fragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value)}`);
