@@ -20,7 +20,7 @@ export function getColumn(sourceObject: any, propertyKey: string) {
 
     return Reflect.getMetadata(nameMetaDatakey, (targetClass as any), propertyKey);
   } catch (ex) {
-    console.error(`Property '${propertyKey}' not found and will return null or be filtered out of the query`);
+    console.error(`Property '${propertyKey}' not found and will return null or be filtered out of the query for ${sourceObject.constructor.name}`);
     return null;
   }
 }
