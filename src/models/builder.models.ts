@@ -105,7 +105,7 @@ export class QueryBuilder {
             const value = parseValue(this._classObject, property, source[property]);
 
             columns.push(column);
-            values.push(value);
+            values.push(value as any);
         }
 
         this._insertQueryString = `(${columns.join(', ')}) VALUES (${values.join(', ')})`;
@@ -179,7 +179,11 @@ export class QueryBuilder {
     public where(group: WhereGroup) {
         const fragments: string[] = [];
         for (const property of Object.keys(group)) {
-            const content = group[property];
+            let content = group[property];
+
+            if (typeof content !== "object" || content.constructor.name === 'DatabaseSystemValue') {
+                content = {value: content};
+            }
 
             let dbColumn = "";
             if (!_.isNil(content.externalObject)) {
@@ -438,7 +442,7 @@ export class WhereGroup {
         value: any | any[],
         type?: WhereCompareType,
         externalObject?: any
-    };
+    } | any;
 }
 
 /**
