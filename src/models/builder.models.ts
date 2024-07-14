@@ -241,6 +241,7 @@ export class QueryBuilder {
      */
     public whereRaw(whereQuery: string) {
         this._whereGroups.push(whereQuery);
+        return this;
     }
 
     /**
@@ -248,7 +249,7 @@ export class QueryBuilder {
      * @param properties The properties of the class you wish to use to create the order by.
      * @param direction
      */
-    public orderBy(properties: string | string[], direction: OrderByDirection = OrderByDirection.ASC) {
+    public orderBy(properties: string | string[] | OrderByValue, direction: OrderByDirection = OrderByDirection.ASC) {
         let columns = [];
         if (_.isArray(properties)) {
             columns = properties.map(p => getColumn(this._classObject, p));
@@ -326,7 +327,8 @@ export class QueryBuilder {
      * Generate a delete query
      */
     public generateDeleteQuery() {
-        let query = `DELETE FROM ${getTable(this._classObject)}`;
+        let query = `DELETE
+                     FROM ${getTable(this._classObject)}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
@@ -342,7 +344,8 @@ export class QueryBuilder {
      * Generate a update query
      */
     public generateUpdateQuery() {
-        let query = `UPDATE ${getTable(this._classObject)} SET ${this._updateQueryString}`;
+        let query = `UPDATE ${getTable(this._classObject)}
+                     SET ${this._updateQueryString}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
@@ -394,6 +397,16 @@ export class SelectValue {
 }
 
 /**
+ * The value of buiilding a order query.
+ */
+export class OrderByValue {
+    [property: string]: {
+        direction?: OrderByDirection,
+        externalObject?: any
+    }
+}
+
+/**
  * Direction enum for order by parts in queries.
  */
 export enum OrderByDirection {
@@ -409,7 +422,7 @@ export class WhereGroup {
         value: any | any[],
         type?: WhereCompareType,
         externalObject?: any
-    }
+    } | string;
 }
 
 /**
