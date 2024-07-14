@@ -12,7 +12,7 @@ export class QueryBuilder {
     private _selectQueryString: string = "*";
     private _insertQueryString: string | null = null;
     private _updateQueryString: string | null = null;
-    private _orderByQuerySting: string | null = null;
+    private _orderByQueryString: string | null = null;
     private _limitByQueryString: string | null = null;
     private _whereGroups: string[] = [];
 
@@ -96,7 +96,7 @@ export class QueryBuilder {
         const columns: string[] = [];
         const values: string[] = [];
 
-        for (let property of properties) {
+        for (const property of properties) {
             if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
                 continue;
             }
@@ -139,7 +139,7 @@ export class QueryBuilder {
         const fragments: string[] = [];
         const properties = Object.keys(targetClass as any);
 
-        for (let property of properties) {
+        for (const property of properties) {
             if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
                 continue;
             }
@@ -177,8 +177,8 @@ export class QueryBuilder {
      * @param group The where group existing from one or multiple properties.
      */
     public where(group: WhereGroup) {
-        let fragments: string[] = [];
-        for (let property of Object.keys(group)) {
+        const fragments: string[] = [];
+        for (const property of Object.keys(group)) {
             const content = group[property];
 
             let dbColumn = "";
@@ -249,14 +249,24 @@ export class QueryBuilder {
      * @param properties The properties of the class you wish to use to create the order by.
      * @param direction
      */
-    public orderBy(properties: string | string[] | OrderByValue, direction: OrderByDirection = OrderByDirection.ASC) {
-        let columns = [];
+    public orderBy(properties: string | string[] | OrderByValue) {
         if (_.isArray(properties)) {
-            columns = properties.map(p => getColumn(this._classObject, p));
+            const columns = properties.map(p => getColumn(this._classObject, p));
+            this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
+        } else if(typeof properties === 'object') {
+            const cProperties = Object.keys(properties);
+            this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
+                const content = properties[prop];
+                let classObject = this._classObject;
+                if (!_.isNil(content.externalObject)) {
+                    classObject = content.externalObject;
+                }
+                return `${getColumn(classObject, prop)} ${content.direction}`
+            }).join(', ')}`;
         } else {
-            columns = [getColumn(this._classObject, properties)];
+            const column = [getColumn(this._classObject, properties as string)];
+            this._orderByQueryString = `ORDER BY ${column}`;
         }
-        this._orderByQuerySting = `ORDER BY ${columns.join(', ')} ${direction}`;
 
         return this;
     }
@@ -288,11 +298,19 @@ export class QueryBuilder {
     }
 
     /* Outputs */
+    public generateQuery() {
+        switch (this._queryType) {
+            case 'SELECT': return this.generateSelectQuery();
+            case 'UPDATE': return this.generateUpdateQuery()
+            case 'DELETE': return this.generateDeleteQuery();
+            case "INSERT": return this.generateInsertQuery();
+        }
+    }
 
     /**
      * Generate a select query.
      */
-    public generateSelectQuery() {
+    private generateSelectQuery() {
         let query = `SELECT ${this._selectQueryString ?? '*'}
                      FROM ${getTable(this._classObject)}`;
 
@@ -305,8 +323,8 @@ export class QueryBuilder {
             }
         }
 
-        if (this._orderByQuerySting !== null) {
-            query += ' ' + this._orderByQuerySting;
+        if (this._orderByQueryString !== null) {
+            query += ' ' + this._orderByQueryString;
         }
 
         if (this._limitByQueryString !== null) {
@@ -319,16 +337,15 @@ export class QueryBuilder {
     /**
      * Generate a insert query.
      */
-    public generateInsertQuery() {
+    private generateInsertQuery() {
         return `INSERT INTO ${getTable(this._classObject)} ${this._insertQueryString}`;
     }
 
     /**
      * Generate a delete query
      */
-    public generateDeleteQuery() {
-        let query = `DELETE
-                     FROM ${getTable(this._classObject)}`;
+    private generateDeleteQuery() {
+        let query = `DELETE FROM ${getTable(this._classObject)}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
@@ -343,9 +360,8 @@ export class QueryBuilder {
     /**
      * Generate a update query
      */
-    public generateUpdateQuery() {
-        let query = `UPDATE ${getTable(this._classObject)}
-                     SET ${this._updateQueryString}`;
+    private generateUpdateQuery() {
+        let query = `UPDATE ${getTable(this._classObject)} SET ${this._updateQueryString}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
@@ -422,7 +438,7 @@ export class WhereGroup {
         value: any | any[],
         type?: WhereCompareType,
         externalObject?: any
-    } | string;
+    };
 }
 
 /**
