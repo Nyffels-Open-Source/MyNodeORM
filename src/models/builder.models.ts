@@ -213,7 +213,7 @@ export class QueryBuilder {
                     }
                     case WhereCompareType.IN:
                     case WhereCompareType.NOTIN: {
-                        fragments.push(`${dbColumn} ${content.type} (${content.value.map(v => parseValue(this._classObject, property, v)).join(", ")})`);
+                        fragments.push(`${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v)).join(", ")})`);
                         break;
                     }
                 }
@@ -257,7 +257,7 @@ export class QueryBuilder {
         if (_.isArray(properties)) {
             const columns = properties.map(p => getColumn(this._classObject, p));
             this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
-        } else if(typeof properties === 'object') {
+        } else if (typeof properties === 'object') {
             const cProperties = Object.keys(properties);
             this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
                 const content = properties[prop];
@@ -304,10 +304,14 @@ export class QueryBuilder {
     /* Outputs */
     public generateQuery() {
         switch (this._queryType) {
-            case 'SELECT': return this.generateSelectQuery();
-            case 'UPDATE': return this.generateUpdateQuery()
-            case 'DELETE': return this.generateDeleteQuery();
-            case "INSERT": return this.generateInsertQuery();
+            case 'SELECT':
+                return this.generateSelectQuery();
+            case 'UPDATE':
+                return this.generateUpdateQuery()
+            case 'DELETE':
+                return this.generateDeleteQuery();
+            case "INSERT":
+                return this.generateInsertQuery();
         }
     }
 
@@ -349,7 +353,8 @@ export class QueryBuilder {
      * Generate a delete query
      */
     private generateDeleteQuery() {
-        let query = `DELETE FROM ${getTable(this._classObject)}`;
+        let query = `DELETE
+                     FROM ${getTable(this._classObject)}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
@@ -365,7 +370,8 @@ export class QueryBuilder {
      * Generate a update query
      */
     private generateUpdateQuery() {
-        let query = `UPDATE ${getTable(this._classObject)} SET ${this._updateQueryString}`;
+        let query = `UPDATE ${getTable(this._classObject)}
+                     SET ${this._updateQueryString}`;
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
             if (this._whereGroups.length === 1) {
