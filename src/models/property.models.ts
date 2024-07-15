@@ -34,6 +34,7 @@ export class DatabaseSystemValue {
     public static Raw(rawQuery: string) {
         const dbSystemValue = new DatabaseSystemValue(MySQL.RAW);
         dbSystemValue.value
+        return dbSystemValue;
     }
 }
 
