@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import mysql, { Connection } from 'mysql2/promise';
+import mysql, {Connection, ResultSetHeader} from 'mysql2/promise';
 
 export async function setConnection() {
     if (!_.isNil((global as any).connection)) {
@@ -54,7 +54,7 @@ export async function doMutation(sqlQuery: string, options: QueryOptions | null 
     }
 
     const [res] = await getConnection().query(sqlQuery);
-    return res as mysql.OkPacket;
+    return res as ResultSetHeader;
 }
 
 export async function doQuery<T = any>(sqlQuery: string, options: QueryOptions | null = null) {
@@ -89,5 +89,6 @@ export async function doQuery<T = any>(sqlQuery: string, options: QueryOptions |
 export class QueryOptions {
     createConnectionWhenNoGlobalConnectionFound = true;
 
-    constructor() {}
+    constructor() {
+    }
 }
