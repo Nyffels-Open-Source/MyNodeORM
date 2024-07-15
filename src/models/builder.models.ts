@@ -82,33 +82,45 @@ export class QueryBuilder {
      * @param source The object with the decorators
      * @param onlyIncludeSourceProperties skip properties that are not present from the insert query.
      */
-    public insert(source: any, onlyIncludeSourceProperties = false) {
+    public insert(source: any | any[], onlyIncludeSourceProperties = false) {
         this._queryType = "INSERT";
+
+        if (!_.isArray(source)) {
+            source = [source] as any[];
+        }
 
         let sourceProperties: string[] = [];
         if (onlyIncludeSourceProperties) {
-            sourceProperties = Object.keys(source);
+            sourceProperties = Object.keys((source as any[]).find(x => x));
         }
         const factory = new Factory();
         const targetClass = factory.create(this._classObject);
 
         const properties = Object.keys(targetClass as any);
         const columns: string[] = [];
-        const values: string[] = [];
 
-        for (const property of properties) {
-            if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
-                continue;
+        this._insertQueryString = `(${columns.join(', ')}) VALUES `;
+        const valuesFragments: string[] = [];
+
+        for( let s of source) {
+            const values: string[] = [];
+
+            for (const property of properties) {
+                if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
+                    continue;
+                }
+
+                const column = getColumn(this._classObject, property);
+                const value = parseValue(this._classObject, property, s[property]);
+
+                columns.push(column);
+                values.push(value as any);
             }
 
-            const column = getColumn(this._classObject, property);
-            const value = parseValue(this._classObject, property, source[property]);
-
-            columns.push(column);
-            values.push(value as any);
+            valuesFragments.push(`(${values.join(', ')})`);
         }
 
-        this._insertQueryString = `(${columns.join(', ')}) VALUES (${values.join(', ')})`;
+        this._insertQueryString += `${valuesFragments.join(', ')}`;
         return this;
     }
 
