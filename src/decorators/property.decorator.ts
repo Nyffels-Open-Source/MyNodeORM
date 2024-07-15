@@ -13,13 +13,18 @@ export function type(type: propertyType) {
   return Reflect.metadata(typeMetaDatakey, type);
 }
 
-export function getColumn(sourceObject: any, propertyKey: string) {
+export function getColumn(sourceObject: any, propertyKey: string, returnKeyOnUnfound = true) {
   try {
     const factory = new Factory();
     const targetClass = factory.create(sourceObject);
 
     return Reflect.getMetadata(nameMetaDatakey, (targetClass as any), propertyKey);
   } catch (ex) {
+    if (returnKeyOnUnfound) {
+      console.warn(`Property '${propertyKey}' not found and will return the raw value for ${sourceObject.constructor.name}`);
+      return propertyKey;
+    }
+
     console.error(`Property '${propertyKey}' not found and will return null or be filtered out of the query for ${sourceObject.constructor.name}`);
     return null;
   }

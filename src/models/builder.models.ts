@@ -302,8 +302,7 @@ export class QueryBuilder {
      * Generate a select query.
      */
     private generateSelectQuery() {
-        let query = `SELECT ${this._selectQueryString ?? '*'}
-                     FROM ${getTable(this._classObject)}`;
+        let query = `SELECT ${this._selectQueryString ?? '*'} FROM ${getTable(this._classObject)}`;
 
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
