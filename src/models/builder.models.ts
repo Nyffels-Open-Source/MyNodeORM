@@ -90,19 +90,25 @@ export class QueryBuilder {
             source = [source] as any[];
         }
 
+        let columns: string[] = [];
         let sourceProperties: string[] = [];
         if (onlyIncludeSourceProperties) {
             sourceProperties = Object.keys((source as any[]).find(x => x));
+            if (onlyIncludeSourceProperties) {
+                columns = sourceProperties.map(p => getColumn(this._classObject, p))
+            }
         }
         const factory = new Factory();
         const targetClass = factory.create(this._classObject);
 
         const properties = Object.keys(targetClass as any);
-        const columns: string[] = [];
+        if (!onlyIncludeSourceProperties) {
+            columns = properties.map(p => getColumn(this._classObject, p))
+        }
 
         const valuesFragments: string[] = [];
 
-        for( let s of source) {
+        for(let s of source) {
             const values: string[] = [];
 
             for (const property of properties) {
@@ -110,10 +116,7 @@ export class QueryBuilder {
                     continue;
                 }
 
-                const column = getColumn(this._classObject, property);
                 const value = parseValue(this._classObject, property, s[property]);
-
-                columns.push(column);
                 values.push(value as any);
             }
 
