@@ -100,7 +100,6 @@ export class QueryBuilder {
         const properties = Object.keys(targetClass as any);
         const columns: string[] = [];
 
-        this._insertQueryString = `(${columns.join(', ')}) VALUES `;
         const valuesFragments: string[] = [];
 
         for( let s of source) {
@@ -121,7 +120,7 @@ export class QueryBuilder {
             valuesFragments.push(`(${values.join(', ')})`);
         }
 
-        this._insertQueryString += `${valuesFragments.join(', ')}`;
+        this._insertQueryString = `(${columns.join(', ')}) VALUES ${valuesFragments.join(', ')}`;
         return this;
     }
 
