@@ -90,32 +90,18 @@ export class QueryBuilder {
             source = [source] as any[];
         }
 
-        let columns: string[] = [];
-        let sourceProperties: string[] = [];
-        if (onlyIncludeSourceProperties) {
-            sourceProperties = Object.keys((source as any[]).find(x => x));
-            if (onlyIncludeSourceProperties) {
-                columns = sourceProperties.map(p => getColumn(this._classObject, p))
-            }
-        }
         const factory = new Factory();
         const targetClass = factory.create(this._classObject);
 
-        const properties = Object.keys(targetClass as any);
-        if (!onlyIncludeSourceProperties) {
-            columns = properties.map(p => getColumn(this._classObject, p))
-        }
+        let properties: string[] = onlyIncludeSourceProperties ? Object.keys((source as any[]).find(x => x)) : Object.keys(targetClass as any);
+        let columns = properties.map(p => getColumn(this._classObject, p));
 
         const valuesFragments: string[] = [];
 
-        for(let s of source) {
+        for (let s of source) {
             const values: string[] = [];
 
             for (const property of properties) {
-                if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
-                    continue;
-                }
-
                 const value = parseValue(this._classObject, property, s[property]);
                 values.push(value as any);
             }
@@ -317,7 +303,8 @@ export class QueryBuilder {
      * Generate a select query.
      */
     private generateSelectQuery() {
-        let query = `SELECT ${this._selectQueryString ?? '*'} FROM ${getTable(this._classObject)}`;
+        let query = `SELECT ${this._selectQueryString ?? '*'}
+                     FROM ${getTable(this._classObject)}`;
 
         this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
         if ((this._whereGroups ?? []).length > 0) {
