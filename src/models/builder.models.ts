@@ -83,7 +83,7 @@ export class QueryBuilder {
      * @param source The object with the decorators
      * @param onlyIncludeSourceProperties skip properties that are not present from the insert query.
      */
-    public insert(source: any | any[], onlyIncludeSourceProperties = false) {
+    public insert(source: any | any[], onlyIncludeSourceProperties = true) {
         this._queryType = "INSERT";
 
         if (!_.isArray(source)) {
@@ -127,7 +127,7 @@ export class QueryBuilder {
      * @param source The object with the docarators
      * @param onlyIncludeSourceProperties skip properties that are not present from the update query.
      */
-    public update(source: any, onlyIncludeSourceProperties = false) {
+    public update(source: any, onlyIncludeSourceProperties = true) {
         this._queryType = "UPDATE";
 
         let sourceProperties: string[] = [];
