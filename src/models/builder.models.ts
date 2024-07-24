@@ -215,7 +215,13 @@ export class QueryBuilder {
                     content.type = WhereCompareType.EQUAL;
                 }
 
-                fragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value)}`);
+                const parsedValue = parseValue(this._classObject, property, content.value);
+                if (parsedValue == "NULL" && content.type == WhereCompareType.EQUAL) {
+                    content.type = "IS";
+                } else if (parsedValue == "NULL" && content.type == WhereCompareType.NOTEQUAL) {
+                    content.type = "IS NOT";
+                }
+                fragments.push(`${dbColumn} ${content.type} ${parsedValue}`);
             }
         }
 
@@ -439,7 +445,8 @@ export class WhereGroup {
  * Compare types for a where value.
  */
 export enum WhereCompareType {
-    EQUAL = "=", // This is the default for single string values
+    EQUAL = "=",
+    NOTEQUAL = "!=",
     LESS = "<",
     LESSEQUAL = "<=",
     GREATER = ">",
