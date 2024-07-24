@@ -47,7 +47,7 @@ export function parseDate(date: Date, time = false): string {
  * @param value The value itself you wish to parse
  */
 export function parseValue(sourceClass: any, property: string, value: any) {
-    if (typeof value === 'object' && value.constructor.name === 'DatabaseSystemValue') {
+    if (typeof value === 'object' && value !== null && value.constructor.name === 'DatabaseSystemValue') {
         return value.value;
     }
 

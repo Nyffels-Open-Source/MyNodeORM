@@ -182,7 +182,7 @@ export class QueryBuilder {
         for (const property of Object.keys(group)) {
             let content = group[property];
 
-            if (typeof content !== "object" || content.constructor.name === 'DatabaseSystemValue') {
+            if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
                 content = {value: content};
             }
 
