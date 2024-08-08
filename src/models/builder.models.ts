@@ -14,7 +14,8 @@ export class QueryBuilder {
     private _updateQueryString: string | null = null;
     private _orderByQueryString: string | null = null;
     private _limitByQueryString: string | null = null;
-    private _whereGroups: string[] = [];
+    private _whereGroups: { group: WhereGroup, parentId: string | null }[] = [];
+    private _whereRawGroups: { query: string, parentId: string | null }[] = [];
 
     private _single = false;
     private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
@@ -54,7 +55,8 @@ export class QueryBuilder {
                 }
             }
         });
-        this._selectQueryString = columns.filter(c => c !== null).join(", ");
+        this._selectQueryString = columns.filter(c => c !== null)
+          .join(", ");
         this._queryType = 'SELECT';
         return this;
     }
@@ -98,10 +100,12 @@ export class QueryBuilder {
 
         const valuesFragments: string[] = [];
 
-        for (let s of source) {
+        for (let s of
+          source) {
             const values: string[] = [];
 
-            for (const property of properties) {
+            for (const property of
+              properties) {
                 const value = parseValue(this._classObject, property, s[property]);
                 values.push(value as any);
             }
@@ -140,7 +144,8 @@ export class QueryBuilder {
         const fragments: string[] = [];
         const properties = Object.keys(targetClass as any);
 
-        for (const property of properties) {
+        for (const property of
+          properties) {
             if (onlyIncludeSourceProperties && !sourceProperties.includes(property)) {
                 continue;
             }
@@ -177,55 +182,11 @@ export class QueryBuilder {
      * Every group is an isolated logic with different values that ae combined with the AND element.
      * @param group The where group existing from one or multiple properties.
      */
-    public where(group: WhereGroup) {
-        const fragments: string[] = [];
-        for (const property of Object.keys(group)) {
-            let content = group[property];
-
-            if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
-                content = {value: content};
-            }
-
-            let dbColumn = "";
-            if (!_.isNil(content.externalObject)) {
-                dbColumn = getColumn(content.externalObject, property);
-            } else {
-                dbColumn = getColumn(this._classObject, property);
-            }
-
-            if (_.isArray(content.value)) {
-                if (_.isNil(content.type)) {
-                    content.type = WhereCompareType.IN;
-                }
-
-                switch (content.type) {
-                    case WhereCompareType.BETWEEN:
-                    case WhereCompareType.NOTBETWEEN: {
-                        fragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`)
-                        break;
-                    }
-                    case WhereCompareType.IN:
-                    case WhereCompareType.NOTIN: {
-                        fragments.push(`${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v)).join(", ")})`);
-                        break;
-                    }
-                }
-            } else {
-                if (_.isNil(content.type)) {
-                    content.type = WhereCompareType.EQUAL;
-                }
-
-                const parsedValue = parseValue(this._classObject, property, content.value);
-                if (parsedValue == "NULL" && content.type == WhereCompareType.EQUAL) {
-                    content.type = "IS";
-                } else if (parsedValue == "NULL" && content.type == WhereCompareType.NOTEQUAL) {
-                    content.type = "IS NOT";
-                }
-                fragments.push(`${dbColumn} ${content.type} ${parsedValue}`);
-            }
-        }
-
-        this._whereGroups.push(fragments.join(" AND "));
+    public where(group: WhereGroup, parentId: string | null = null) {
+        this._whereGroups.push({
+            parentId: parentId,
+            group: group
+        });
         return this;
     }
 
@@ -233,8 +194,12 @@ export class QueryBuilder {
      * Give a raw query that will be pasted in the where group and be combined with the other where's with the OR element.
      * @param whereQuery
      */
-    public whereRaw(whereQuery: string) {
-        this._whereGroups.push(whereQuery);
+    public whereRaw(raw: string, parentId: string | null = null) {
+        this._whereRawGroups.push({
+            query: raw,
+            parentId: parentId
+        });
+
         return this;
     }
 
@@ -256,7 +221,8 @@ export class QueryBuilder {
                     classObject = content.externalObject;
                 }
                 return `${getColumn(classObject, prop)} ${content.direction}`
-            }).join(', ')}`;
+            })
+              .join(', ')}`;
         } else {
             const column = [getColumn(this._classObject, properties as string)];
             this._orderByQueryString = `ORDER BY ${column}`;
@@ -306,19 +272,83 @@ export class QueryBuilder {
     }
 
     /**
+     * Convert the wheregroup array to the where string.
+     */
+    private convertWheregroupsToWhereString() {
+        for (let group of this._whereGroups) {
+            const propertyFragments: string[] = [];
+            for (const property of Object.keys(group.group)) {
+                let content = group.group[property];
+
+                if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
+                    content = {value: content};
+                }
+
+                let dbColumn = "";
+                if (!_.isNil(content.externalObject)) {
+                    dbColumn = getColumn(content.externalObject, property);
+                } else {
+                    dbColumn = getColumn(this._classObject, property);
+                }
+
+                if (_.isArray(content.value)) {
+                    if (_.isNil(content.type)) {
+                        content.type = WhereCompareType.IN;
+                    }
+
+                    switch (content.type) {
+                        case WhereCompareType.BETWEEN:
+                        case WhereCompareType.NOTBETWEEN: {
+                            propertyFragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`);
+                            break;
+                        }
+                        case WhereCompareType.IN:
+                        case WhereCompareType.NOTIN: {
+                            propertyFragments.push(`${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v))
+                              .join(", ")})`);
+                            break;
+                        }
+                    }
+                } else {
+                    if (_.isNil(content.type)) {
+                        content.type = WhereCompareType.EQUAL;
+                    }
+
+                    const parsedValue = parseValue(this._classObject, property, content.value);
+                    if (parsedValue == "NULL" && content.type == WhereCompareType.EQUAL) {
+                        content.type = "IS";
+                    } else if (parsedValue == "NULL" && content.type == WhereCompareType.NOTEQUAL) {
+                        content.type = "IS NOT";
+                    }
+
+                    propertyFragments.push(`${dbColumn} ${content.type} ${parsedValue}`);
+                }
+            }
+            this._whereRawGroups.push({
+                parentId: group.parentId,
+                query: propertyFragments.join(" AND ")
+            });
+        }
+
+
+        const parentGroups: string[] = [];
+        for (const parentId of _.uniq(this._whereRawGroups.map(f => f.parentId))) {
+            parentGroups.push("(" + this._whereRawGroups.filter(g => g.parentId == parentId)
+              .map(g => g.query)
+              .join(" OR ") + ")");
+        }
+        return parentGroups.join(" AND ");
+    }
+
+    /**
      * Generate a select query.
      */
     private generateSelectQuery() {
         let query = `SELECT ${this._selectQueryString ?? '*'}
-                     FROM ${getTable(this._classObject)}`;
+                 FROM ${getTable(this._classObject)}`;
 
-        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
-        if ((this._whereGroups ?? []).length > 0) {
-            if (this._whereGroups.length === 1) {
-                query += ` WHERE ${this._whereGroups.find(x => x)}`;
-            } else {
-                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
-            }
+        if (this._whereGroups ?? [].length > 0) {
+            query += ` WHERE ${this.convertWheregroupsToWhereString()}`;
         }
 
         if (this._orderByQueryString !== null) {
@@ -344,14 +374,9 @@ export class QueryBuilder {
      */
     private generateDeleteQuery() {
         let query = `DELETE
-                     FROM ${getTable(this._classObject)}`;
-        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
-        if ((this._whereGroups ?? []).length > 0) {
-            if (this._whereGroups.length === 1) {
-                query += ` WHERE ${this._whereGroups.find(x => x)}`;
-            } else {
-                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
-            }
+                 FROM ${getTable(this._classObject)}`;
+        if (this._whereGroups ?? [].length > 0) {
+            query += ` WHERE ${this.convertWheregroupsToWhereString()}`;
         }
         return query;
     }
@@ -361,14 +386,9 @@ export class QueryBuilder {
      */
     private generateUpdateQuery() {
         let query = `UPDATE ${getTable(this._classObject)}
-                     SET ${this._updateQueryString}`;
-        this._whereGroups = this._whereGroups.filter(g => !_.isNil(g) && g.trim().length > 0);
-        if ((this._whereGroups ?? []).length > 0) {
-            if (this._whereGroups.length === 1) {
-                query += ` WHERE ${this._whereGroups.find(x => x)}`;
-            } else {
-                query += ` WHERE ${this._whereGroups.map(group => "(" + group + ")").join(" OR ")}`;
-            }
+                 SET ${this._updateQueryString}`;
+        if (this._whereGroups ?? [].length > 0) {
+            query += ` WHERE ${this.convertWheregroupsToWhereString()}`;
         }
         return query;
     }
@@ -435,10 +455,10 @@ export enum OrderByDirection {
  */
 export class WhereGroup {
     [key: string]: {
-        value: any | any[],
-        type?: WhereCompareType,
-        externalObject?: any
-    } | any;
+                       value: any | any[],
+                       type?: WhereCompareType,
+                       externalObject?: any,
+                   } | any;
 }
 
 /**
