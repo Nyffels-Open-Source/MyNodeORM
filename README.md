@@ -16,6 +16,9 @@ For major changes, please open an issue first to discuss what you would like to 
 ## License 
 MIT -  Copyright (c) 2023 Nyffels BV
 
+## NPMjs 
+https://www.npmjs.com/package/@nyffels/mysql-query-builder
+
 ## Dependencies
 - NodeJS
 - MySQL2 (https://www.npmjs.com/package/mysql2)
