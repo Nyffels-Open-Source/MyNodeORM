@@ -1,5 +1,5 @@
 # MySQL Query builder
-The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL database and build dynamic queries fast and easy. 
+The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL database and build dynamic queries fast and easy.
 
 ## Installation 
 Use the npm package manager to install "MySQL Query Builder" by running the command

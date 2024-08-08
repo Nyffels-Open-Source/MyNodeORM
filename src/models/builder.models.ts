@@ -337,7 +337,7 @@ export class QueryBuilder {
         .map(g => g.query)
         .join(" OR ") + ")");
     }
-    return parentGroups.length > 0 ? ` WHERE parentGroups.join(" AND ")` : '';
+    return parentGroups.length > 0 ? ` WHERE ${parentGroups.join(" AND ")}` : '';
   }
 
   /**
