@@ -17,7 +17,7 @@ For major changes, please open an issue first to discuss what you would like to 
 MIT -  Copyright (c) 2023 Nyffels BV
 
 ## Links 
-github (https://github.com/Nyffels-Open-Source/mysql-query-builder)
+github (https://github.com/Nyffels-Open-Source/mysql-query-builder) \
 npmjs (https://www.npmjs.com/package/@nyffels/mysql-query-builder)
 
 ## Dependencies
