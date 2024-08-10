@@ -40,22 +40,32 @@ export class QueryBuilder {
       return this;
     }
 
-    const columns: string[] = properties.map(p => {
+    const columns = properties.map(p => {
       if ((typeof p) === "string") {
-        return getColumn(this._classObject, p as string);
+
+        const column = getColumn(this._classObject, p as string);
+        const table = getTable(this._classObject);
+
+        return `${table}.${column}`;
       } else {
         try {
           const keys = Object.keys(p);
-          if (!keys.includes('property') || !keys.includes('alias')) {
+          if (!keys.includes('property')) {
             throw new Error('Incorrect selectValue object');
           }
-          return `${getColumn(this._classObject, (p as SelectValue).property)} AS ${(p as SelectValue).alias}`;
+
+          const column = getColumn(this._classObject, (p as SelectValue).property);
+          const table = getTable((p as SelectValue).table ?? this._classObject);
+
+          const noAliasQueryFragment = `${table}.${column}`;
+          return ((p as SelectValue).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue).alias}` : noAliasQueryFragment;
         } catch (err) {
           console.warn(err);
-          return null;
+          return "";
         }
       }
-    });
+    })
+      .filter(x => (x ?? '').length > 0);
     this._selectQueryString = columns.filter(c => c !== null)
       .join(", ");
     this._queryType = 'SELECT';
@@ -208,8 +218,11 @@ export class QueryBuilder {
    * Generate the group by part of a query
    * @param property The property your query has to group by
    */
-  public groupBy(property: string) {
-    this._groupByValue = getColumn(this._classObject, property);
+  public groupBy(property: string, table?: any) {
+    const columnQuery = getColumn(this._classObject, property);
+    const tableQuery = getTable(table ?? this._classObject);
+
+    this._groupByValue = `${tableQuery}.${columnQuery}`;
     return this;
   }
 
@@ -227,15 +240,16 @@ export class QueryBuilder {
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = properties[prop];
         let classObject = this._classObject;
-        if (!_.isNil(content.externalObject)) {
-          classObject = content.externalObject;
+        if (!_.isNil(content.table)) {
+          classObject = content.table;
         }
-        return `${getColumn(classObject, prop)} ${content.direction}`
+        return `${getTable(classObject)}.${getColumn(classObject, prop)} ${content.direction}`
       })
         .join(', ')}`;
     } else {
+      const table = getTable(this._classObject);
       const column = [getColumn(this._classObject, properties as string)];
-      this._orderByQueryString = `ORDER BY ${column}`;
+      this._orderByQueryString = `ORDER BY ${table}.${column}`;
     }
 
     return this;
@@ -440,7 +454,8 @@ export class QueryBuilder {
  */
 export class SelectValue {
   public property!: string;
-  public alias!: string;
+  public alias?: string;
+  public table?: any
 }
 
 /**
@@ -449,7 +464,7 @@ export class SelectValue {
 export class OrderByValue {
   [property: string]: {
     direction?: OrderByDirection,
-    externalObject?: any
+    table?: any
   }
 }
 
@@ -468,7 +483,7 @@ export class WhereGroup {
   [key: string]: {
                    value: any | any[],
                    type?: WhereCompareType,
-                   externalObject?: any,
+                   table?: any,
                  } | any;
 }
 
