@@ -16,6 +16,7 @@ export class QueryBuilder {
   private _limitByQueryString: string | null = null;
   private _whereGroups: { group: WhereGroup, parentId: string | null }[] = [];
   private _whereRawGroups: { query: string, parentId: string | null }[] = [];
+  private _groupByValue: string = null;
 
   private _single = false;
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
@@ -204,9 +205,18 @@ export class QueryBuilder {
   }
 
   /**
+   * Generate the group by part of a query
+   * @param property The property your query has to group by
+   */
+  public groupBy(property: string) {
+    this._groupByValue = getColumn(this._classObject, property);
+    return this;
+  }
+
+  /**
    * Generate the order by port of a query.
    * @param properties The properties of the class you wish to use to create the order by.
-   * @param direction
+   * @param direction The direction of the order (ASC / DESC)
    */
   public orderBy(properties: string | string[] | OrderByValue) {
     if (_.isArray(properties)) {
@@ -275,9 +285,11 @@ export class QueryBuilder {
    * Convert the wheregroup array to the where string.
    */
   private convertWheregroupsToWhereString() {
-    for (let group of this._whereGroups) {
+    for (let group of
+      this._whereGroups) {
       const propertyFragments: string[] = [];
-      for (const property of Object.keys(group.group)) {
+      for (const property of
+        Object.keys(group.group)) {
         let content = group.group[property];
 
         if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
@@ -332,7 +344,8 @@ export class QueryBuilder {
 
 
     const parentGroups: string[] = [];
-    for (const parentId of _.uniq(this._whereRawGroups.map(f => f.parentId))) {
+    for (const parentId of
+      _.uniq(this._whereRawGroups.map(f => f.parentId))) {
       parentGroups.push("(" + this._whereRawGroups.filter(g => g.parentId == parentId)
         .map(g => g.query)
         .join(" OR ") + ")");
@@ -348,6 +361,10 @@ export class QueryBuilder {
                  FROM ${getTable(this._classObject)}`;
 
     query += `${this.convertWheregroupsToWhereString()}`;
+
+    if (this._groupByValue !== null) {
+      query += ` GROUP BY ${this._groupByValue}`;
+    }
 
     if (this._orderByQueryString !== null) {
       query += ' ' + this._orderByQueryString;
