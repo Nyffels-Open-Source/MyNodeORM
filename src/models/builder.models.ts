@@ -16,7 +16,7 @@ export class QueryBuilder {
   private _limitByQueryString: string | null = null;
   private _whereGroups: { group: WhereGroup, parentId: string | null }[] = [];
   private _whereRawGroups: { query: string, parentId: string | null }[] = [];
-  private _groupByValue: string = null;
+  private _groupByValue: string | null = null;
 
   private _single = false;
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
