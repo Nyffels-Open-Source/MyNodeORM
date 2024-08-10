@@ -20,6 +20,7 @@ export class QueryBuilder {
 
   private _single = false;
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
+  private _joins: JoinValue[] = [];
 
   /**
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
@@ -54,8 +55,8 @@ export class QueryBuilder {
             throw new Error('Incorrect selectValue object');
           }
 
-          const column = getColumn(this._classObject, (p as SelectValue).property);
           const table = getTable((p as SelectValue).table ?? this._classObject);
+          const column = getColumn((p as SelectValue).table ?? this._classObject, (p as SelectValue).property);
 
           const noAliasQueryFragment = `${table}.${column}`;
           return ((p as SelectValue).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue).alias}` : noAliasQueryFragment;
@@ -256,6 +257,13 @@ export class QueryBuilder {
   }
 
   /**
+   * Generate a Join sql query parts.
+   */
+  public join(joinValue: JoinValue) {
+    this._joins.push(joinValue);
+  }
+
+  /**
    * Generate the limit, with offset option, part of the query.
    * This function disables the function "single".
    * @param limit The limit of the rows you wisch to fetch
@@ -374,6 +382,16 @@ export class QueryBuilder {
     let query = `SELECT ${this._selectQueryString ?? '*'}
                  FROM ${getTable(this._classObject)}`;
 
+    for (const join of this._joins) {
+      query += ` ${join.type ?? "LEFT"} JOIN ${getTable(join.table)}`;
+      if (!_.isArray(join.on)) {
+        join.on = [join.on as joinOnValue];
+      }
+      for (const onValue of join.on) {
+        query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, onValue.sourceProperty)} = ${getTable(join.table)}.${getColumn(join.table, onValue.targetProperty)}`;
+      }
+    }
+
     query += `${this.convertWheregroupsToWhereString()}`;
 
     if (this._groupByValue !== null) {
@@ -486,6 +504,21 @@ export class WhereGroup {
                    table?: any,
                  } | any;
 }
+
+/**
+ * A join value to join 2 tables.
+ */
+export class JoinValue {
+  table!: any;
+  on!: joinOnValue | joinOnValue[];
+  type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
+}
+
+interface joinOnValue {
+  sourceProperty: string;
+  targetProperty: string;
+}
+
 
 /**
  * Compare types for a where value.
