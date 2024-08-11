@@ -1,4 +1,4 @@
-import {getColumn, getTable, getType} from "../decorators";
+import {getColumn, getObjectById, getTable, getType} from "../decorators";
 import _ from "lodash";
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic";
 import {Factory} from "./factory.models";
@@ -26,8 +26,12 @@ export class QueryBuilder {
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
    * @param classObject The object with the decorators
    */
-  constructor(classObject: any) {
-    this._classObject = classObject;
+  constructor(classObject: any | string) {
+    if (typeof classObject === "string") {
+      this._classObject = getObjectById(classObject);
+    } else {
+      this._classObject = classObject;
+    }
   }
 
   /* Builders */
@@ -55,8 +59,9 @@ export class QueryBuilder {
             throw new Error('Incorrect selectValue object');
           }
 
-          const table = getTable((p as SelectValue).table ?? this._classObject);
-          const column = getColumn((p as SelectValue).table ?? this._classObject, (p as SelectValue).property);
+          const classObject = (p as SelectValue).table && typeof (p as SelectValue).table === "string" ? getObjectById((p as SelectValue).table) : (p as SelectValue).table;
+          const table = getTable(classObject ?? this._classObject);
+          const column = getColumn(classObject ?? this._classObject, (p as SelectValue).property);
 
           const noAliasQueryFragment = `${table}.${column}`;
           return ((p as SelectValue).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue).alias}` : noAliasQueryFragment;
@@ -219,8 +224,11 @@ export class QueryBuilder {
    * Generate the group by part of a query
    * @param property The property your query has to group by
    */
-  public groupBy(property: string, table?: any) {
+  public groupBy(property: string, table?: any | string) {
     const columnQuery = getColumn(this._classObject, property);
+    if (table && typeof table === "string") {
+      table = getObjectById(table);
+    }
     const tableQuery = getTable(table ?? this._classObject);
 
     this._groupByValue = `${tableQuery}.${columnQuery}`;
@@ -240,7 +248,7 @@ export class QueryBuilder {
       const cProperties = Object.keys(properties);
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = properties[prop];
-        let classObject = this._classObject;
+        let classObject = properties[prop].table && typeof properties[prop].table === "string" ? getObjectById(properties[prop].table) : properties[prop].table ?? this._classObject;
         if (!_.isNil(content.table)) {
           classObject = content.table;
         }
@@ -320,6 +328,9 @@ export class QueryBuilder {
 
         let dbColumn = "";
         if (!_.isNil(content.externalObject)) {
+          if (typeof content.externalObject === "string") {
+            content.externalObject = getObjectById(content.externalObject);
+          }
           dbColumn = getColumn(content.externalObject, property);
         } else {
           dbColumn = getColumn(this._classObject, property);
@@ -382,10 +393,14 @@ export class QueryBuilder {
     let query = `SELECT ${this._selectQueryString ?? '*'}
                  FROM ${getTable(this._classObject)}`;
 
-    for (const join of this._joins) {
+    for (const join of
+      this._joins) {
       query += ` ${join.type ?? "LEFT"} JOIN ${getTable(join.table)}`;
       if (!_.isArray(join.on)) {
         join.on = [join.on as joinOnValue];
+      }
+      if (typeof join.table === "string") {
+        join.table = getObjectById(join.table);
       }
       for (const onValue of join.on) {
         query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, onValue.sourceProperty)} = ${getTable(join.table)}.${getColumn(join.table, onValue.targetProperty)}`;
@@ -473,7 +488,7 @@ export class QueryBuilder {
 export class SelectValue {
   public property!: string;
   public alias?: string;
-  public table?: any
+  public table?: any | string
 }
 
 /**
@@ -482,7 +497,7 @@ export class SelectValue {
 export class OrderByValue {
   [property: string]: {
     direction?: OrderByDirection,
-    table?: any
+    table?: any | string
   }
 }
 
@@ -501,7 +516,7 @@ export class WhereGroup {
   [key: string]: {
                    value: any | any[],
                    type?: WhereCompareType,
-                   table?: any,
+                   table?: any | string,
                  } | any;
 }
 
@@ -509,7 +524,7 @@ export class WhereGroup {
  * A join value to join 2 tables.
  */
 export class JoinValue {
-  table!: any;
+  table!: any | string;
   on!: joinOnValue | joinOnValue[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }
