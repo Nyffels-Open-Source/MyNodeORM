@@ -22,6 +22,8 @@ export class QueryBuilder {
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
   private _joins: JoinValue[] = [];
 
+  private _isCount = false
+
   /**
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
    * @param classObject The object with the decorators
@@ -90,9 +92,10 @@ export class QueryBuilder {
   /**
    * Create a count select query.
    */
-  public count(alias: string = "count") {
+  public count() {
     this._queryType = "SELECT";
-    this._selectQueryString = `COUNT(*) as ${alias}`;
+    this._selectQueryString = `COUNT(*) as count`;
+    this._isCount = true;
     this.single();
     return this;
   }
@@ -402,7 +405,8 @@ export class QueryBuilder {
       if (typeof join.table === "string") {
         join.table = getObjectById(join.table);
       }
-      for (const onValue of join.on) {
+      for (const onValue of
+        join.on) {
         query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, onValue.sourceProperty)} = ${getTable(join.table)}.${getColumn(join.table, onValue.targetProperty)}`;
       }
     }
@@ -454,13 +458,15 @@ export class QueryBuilder {
   /**
    * Execute the builded query.
    */
-  public async execute<T = any>(): Promise<T> {
+  public async execute<T = any>(): Promise<T | number> {
     switch (this._queryType) {
       case 'SELECT': {
         const selectQuery = this.generateSelectQuery();
         const queryRes = await doQuery(selectQuery);
         const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
-        if (this._single) {
+        if (this._isCount) {
+          return res.find(x => x.count) as number;
+        } else if (this._single) {
           return res.find(x => x) as typeof this._classObject;
         } else {
           return res as typeof this._classObject[] as any;
