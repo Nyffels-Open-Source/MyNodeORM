@@ -90,7 +90,7 @@ export class QueryBuilder {
   }
 
   /**
-   * Create a count select query.
+   * Create a count select query. The result of the execute will now be the counted result with type of number. The only accepted type parameter for execute function in combination with count is number. 
    */
   public count() {
     this._queryType = "SELECT";
@@ -458,14 +458,14 @@ export class QueryBuilder {
   /**
    * Execute the builded query.
    */
-  public async execute<T = any>(): Promise<T | number> {
+  public async execute<T = any>(): Promise<T> {
     switch (this._queryType) {
       case 'SELECT': {
         const selectQuery = this.generateSelectQuery();
         const queryRes = await doQuery(selectQuery);
         const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
         if (this._isCount) {
-          return res.find(x => x.count) as number;
+          return res.find(x => x.count) as T;
         } else if (this._single) {
           return res.find(x => x) as typeof this._classObject;
         } else {
