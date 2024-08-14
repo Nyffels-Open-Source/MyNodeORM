@@ -90,7 +90,7 @@ export class QueryBuilder {
   }
 
   /**
-   * Create a count select query. The result of the execute will now be the counted result with type of number. The only accepted type parameter for execute function in combination with count is number. 
+   * Create a count select query. The result of the execute will now be the counted result with type of number. The only accepted type parameter for execute function in combination with count is number.
    */
   public count() {
     this._queryType = "SELECT";
@@ -330,13 +330,16 @@ export class QueryBuilder {
         }
 
         let dbColumn = "";
+        let dbTable = "";
         if (!_.isNil(content.externalObject)) {
           if (typeof content.externalObject === "string") {
             content.externalObject = getObjectById(content.externalObject);
           }
           dbColumn = getColumn(content.externalObject, property);
+          dbTable = getTable(content.externalObject);
         } else {
           dbColumn = getColumn(this._classObject, property);
+          dbTable = getTable(this._classObject);
         }
 
         if (_.isArray(content.value)) {
@@ -347,12 +350,12 @@ export class QueryBuilder {
           switch (content.type) {
             case WhereCompareType.BETWEEN:
             case WhereCompareType.NOTBETWEEN: {
-              propertyFragments.push(`${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`);
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`);
               break;
             }
             case WhereCompareType.IN:
             case WhereCompareType.NOTIN: {
-              propertyFragments.push(`${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v))
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v))
                 .join(", ")})`);
               break;
             }
@@ -369,7 +372,11 @@ export class QueryBuilder {
             content.type = "IS NOT";
           }
 
-          propertyFragments.push(`${dbColumn} ${content.type} ${parsedValue}`);
+          if (!_.isNil(content.orNull) && content.orNull === true) {
+            propertyFragments.push(`(${dbTable}.${dbColumn} ${content.type} ${parsedValue} OR ${dbTable}.${dbColumn} IS NULL)`);
+          } else {
+            propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parsedValue}`); 
+          }
         }
       }
       this._whereRawGroups.push({
@@ -523,6 +530,7 @@ export class WhereGroup {
                    value: any | any[],
                    type?: WhereCompareType,
                    table?: any | string,
+                   orNull?: boolean
                  } | any;
 }
 
