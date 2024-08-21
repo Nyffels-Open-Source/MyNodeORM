@@ -277,7 +277,7 @@ export class QueryBuilder<T> {
   /**
    * Generate a Join sql query parts.
    */
-  public join<S, T>(joinValue: JoinValue<S, T>) {
+  public join<source, target>(joinValue: JoinValue<source, target>) {
     this._joins.push(joinValue);
   }
 
@@ -549,15 +549,15 @@ export type WhereGroup<T> = {
 /**
  * A join value to join 2 tables.
  */
-export class JoinValue<S, T> {
+export class JoinValue<source, target> {
   table!: Object | string;
-  on!: joinOnValue<S, T> | joinOnValue<S, T>[];
+  on!: joinOnValue<source, target> | joinOnValue<source, target>[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }
 
-interface joinOnValue<S, T> {
-  sourceProperty: keyof S;
-  targetProperty: keyof T;
+interface joinOnValue<source, target> {
+  sourceProperty: keyof source;
+  targetProperty: keyof target;
 }
 
 
