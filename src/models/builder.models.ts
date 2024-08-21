@@ -109,7 +109,7 @@ export class QueryBuilder<T> {
    * @param source The object with the decorators
    * @param onlyIncludeSourceProperties skip properties that are not present from the insert query.
    */
-  public insert(source: any | any[], onlyIncludeSourceProperties = true) {
+  public insert(source: InsertValue<T> | InsertValue<T>[], onlyIncludeSourceProperties = true) {
     this._queryType = "INSERT";
 
     if (!_.isArray(source)) {
@@ -130,7 +130,7 @@ export class QueryBuilder<T> {
 
       for (const property of
         properties) {
-        const value = parseValue(this._classObject, property, s[property]);
+        const value = parseValue(this._classObject, property, (s as any)[property]);
         values.push(value as any);
       }
 
@@ -155,7 +155,7 @@ export class QueryBuilder<T> {
    * @param source The object with the docarators
    * @param onlyIncludeSourceProperties skip properties that are not present from the update query.
    */
-  public update(source: any, onlyIncludeSourceProperties = true) {
+  public update(source: UpdateValue<T>, onlyIncludeSourceProperties = true) {
     this._queryType = "UPDATE";
 
     let sourceProperties: string[] = [];
@@ -175,7 +175,7 @@ export class QueryBuilder<T> {
       }
 
       const column = getColumn(this._classObject, property);
-      const value = parseValue(this._classObject, property, source[property]);
+      const value = parseValue(this._classObject, property, (source as any)[property]);
       fragments.push(`${column} = ${value}`);
     }
 
@@ -538,13 +538,26 @@ export enum OrderByDirection {
  */
 export type WhereGroup<T> = {
   [key in keyof T]?: {
-    value: T[key] | T[key][],
-    type?: WhereCompareType,
-    table?: Object | string,
-    orNull?: boolean
-  } | T[key] | T[key][]
+                       value: T[key] | T[key][],
+                       type?: WhereCompareType,
+                       table?: Object | string,
+                       orNull?: boolean
+                     } | T[key] | T[key][]
 }
 
+/**
+ * A value for an update query.
+ */
+export type UpdateValue<T> = {
+  [key in keyof T]?: T[key]
+}
+
+/**
+ * A value for an insert query.
+ */
+export type InsertValue<T> = {
+  [key in keyof T]?: T[key]
+}
 
 /**
  * A join value to join 2 tables.
