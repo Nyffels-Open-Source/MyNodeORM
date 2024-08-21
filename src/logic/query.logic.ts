@@ -7,18 +7,18 @@ import {getColumn} from "../decorators";
  * @param results The query results received from the MySQL query.
  * @returns A generated object from the sourceClass value.
  */
-export function queryResultToObject<T = any>(classObject: any, results: any[]) {
+export function queryResultToObject<T = any>(classObject: Object, results: any[]) {
     if ((results ?? []).length <= 0) {
         return [] as T[];
     }
 
     const factory = new Factory();
-    const targetClass = factory.create(classObject);
+    const targetClass = factory.create(classObject as any);
     const classProperties = Object.getOwnPropertyNames(targetClass);
     const result: any[] = [];
 
     (results ?? []).forEach((r) => {
-        const resultObject = factory.create(classObject) as any;
+        const resultObject = factory.create(classObject as any) as any;
         classProperties.forEach((p) => {
             const column = getColumn(classObject, p);
             if (column) {

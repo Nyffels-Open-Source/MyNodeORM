@@ -6,8 +6,8 @@ import {Factory} from "./factory.models";
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
  */
-export class QueryBuilder {
-  private _classObject: any;
+export class QueryBuilder<T> {
+  private _classObject: Object;
 
   private _selectQueryString: string = "*";
   private _insertQueryString: string | null = null;
@@ -28,9 +28,13 @@ export class QueryBuilder {
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
    * @param classObject The object with the decorators
    */
-  constructor(classObject: any | string) {
+  constructor(classObject: Object | string) {
     if (typeof classObject === "string") {
-      this._classObject = getObjectById(classObject);
+      const object = getObjectById(classObject);
+      if (object === null) {
+        throw new Error("No object found that matches " + classObject + "!");
+      }
+      this._classObject = getObjectById(classObject) as Object;
     } else {
       this._classObject = classObject;
     }
@@ -61,7 +65,7 @@ export class QueryBuilder {
             throw new Error('Incorrect selectValue object');
           }
 
-          const classObject = (p as SelectValue).table && typeof (p as SelectValue).table === "string" ? getObjectById((p as SelectValue).table) : (p as SelectValue).table;
+          const classObject = (p as SelectValue).table && typeof (p as SelectValue).table === "string" ? getObjectById((p as SelectValue).table as string) : (p as SelectValue).table;
           const table = getTable(classObject ?? this._classObject);
           const column = getColumn(classObject ?? this._classObject, (p as SelectValue).property);
 
@@ -113,7 +117,7 @@ export class QueryBuilder {
     }
 
     const factory = new Factory();
-    const targetClass = factory.create(this._classObject);
+    const targetClass = factory.create(this._classObject as any);
 
     let properties: string[] = onlyIncludeSourceProperties ? Object.keys((source as any[]).find(x => x)) : Object.keys(targetClass as any);
     let columns = properties.map(p => getColumn(this._classObject, p));
@@ -159,7 +163,7 @@ export class QueryBuilder {
       sourceProperties = Object.keys(source);
     }
     const factory = new Factory();
-    const targetClass = factory.create(this._classObject);
+    const targetClass = factory.create(this._classObject as any);
 
     const fragments: string[] = [];
     const properties = Object.keys(targetClass as any);
@@ -252,10 +256,13 @@ export class QueryBuilder {
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = properties[prop];
         let classObject = properties[prop].table && typeof properties[prop].table === "string" ? getObjectById(properties[prop].table) : properties[prop].table ?? this._classObject;
+        if (classObject) {
+          throw new Error("Unknown object reference used in orderBy statement of the Query builder!");
+        }
         if (!_.isNil(content.table)) {
           classObject = content.table;
         }
-        return `${getTable(classObject)}.${getColumn(classObject, prop)} ${content.direction}`
+        return `${getTable(classObject as Object)}.${getColumn(classObject as Object, prop)} ${content.direction}`
       })
         .join(', ')}`;
     } else {
@@ -375,7 +382,7 @@ export class QueryBuilder {
           if (!_.isNil(content.orNull) && content.orNull === true) {
             propertyFragments.push(`(${dbTable}.${dbColumn} ${content.type} ${parsedValue} OR ${dbTable}.${dbColumn} IS NULL)`);
           } else {
-            propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parsedValue}`); 
+            propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parsedValue}`);
           }
         }
       }
@@ -410,7 +417,11 @@ export class QueryBuilder {
         join.on = [join.on as joinOnValue];
       }
       if (typeof join.table === "string") {
-        join.table = getObjectById(join.table);
+        let obj = getObjectById(join.table);
+        if (obj === null) {
+          throw new Error("Cannot generate select query due to incorrect table reference at join.");
+        }
+        join.table = obj as Object;
       }
       for (const onValue of
         join.on) {
@@ -472,9 +483,9 @@ export class QueryBuilder {
         const queryRes = await doQuery(selectQuery);
         const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
         if (this._isCount) {
-          return res.find(x => x.count) as T;
+          return res.find(x => (x as any).count) as T;
         } else if (this._single) {
-          return res.find(x => x) as typeof this._classObject;
+          return res.find(x => x) as T;
         } else {
           return res as typeof this._classObject[] as any;
         }
@@ -501,7 +512,7 @@ export class QueryBuilder {
 export class SelectValue {
   public property!: string;
   public alias?: string;
-  public table?: any | string
+  public table?: Object | string
 }
 
 /**
@@ -510,7 +521,7 @@ export class SelectValue {
 export class OrderByValue {
   [property: string]: {
     direction?: OrderByDirection,
-    table?: any | string
+    table?: Object | string
   }
 }
 
@@ -529,7 +540,7 @@ export class WhereGroup {
   [key: string]: {
                    value: any | any[],
                    type?: WhereCompareType,
-                   table?: any | string,
+                   table?: Object | string,
                    orNull?: boolean
                  } | any;
 }
@@ -538,7 +549,7 @@ export class WhereGroup {
  * A join value to join 2 tables.
  */
 export class JoinValue {
-  table!: any | string;
+  table!: Object | string;
   on!: joinOnValue | joinOnValue[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }
