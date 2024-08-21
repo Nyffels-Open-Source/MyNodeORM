@@ -45,7 +45,7 @@ export class QueryBuilder<T> {
   /**
    * Add the fields by property keys of the loaded class to the select query.
    */
-  public select(properties: (string | SelectValue)[] = []) {
+  public select(properties: (keyof T | SelectValue<T>)[] = []) {
     if ((properties ?? []).length <= 0) {
       this._selectQueryString = "*"
       return this;
@@ -65,12 +65,12 @@ export class QueryBuilder<T> {
             throw new Error('Incorrect selectValue object');
           }
 
-          const classObject = (p as SelectValue).table && typeof (p as SelectValue).table === "string" ? getObjectById((p as SelectValue).table as string) : (p as SelectValue).table;
+          const classObject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getObjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
           const table = getTable(classObject ?? this._classObject);
-          const column = getColumn(classObject ?? this._classObject, (p as SelectValue).property);
+          const column = getColumn(classObject ?? this._classObject, (p as SelectValue<T>).property);
 
           const noAliasQueryFragment = `${table}.${column}`;
-          return ((p as SelectValue).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue).alias}` : noAliasQueryFragment;
+          return ((p as SelectValue<T>).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue<T>).alias}` : noAliasQueryFragment;
         } catch (err) {
           console.warn(err);
           return "";
@@ -509,8 +509,8 @@ export class QueryBuilder<T> {
 /**
  * Value used for building a select query.
  */
-export class SelectValue {
-  public property!: string;
+export class SelectValue<T> {
+  public property!: keyof T;
   public alias?: string;
   public table?: Object | string
 }
