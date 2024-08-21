@@ -13,29 +13,29 @@ export function type(type: propertyType) {
   return Reflect.metadata(typeMetaDatakey, type);
 }
 
-export function getColumn(sourceObject: any, propertyKey: string, returnKeyOnUnfound = true) {
+/**
+ * Get a sql column from a property. If no column decorator found, it will return the propertykey.
+ */
+export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
   try {
     const factory = new Factory();
-    const targetClass = factory.create(sourceObject);
+    const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(nameMetaDatakey, (targetClass as any), propertyKey);
+    return Reflect.getMetadata(nameMetaDatakey, (targetClass as any), propertyKey as string) as string;
   } catch (ex) {
-    if (returnKeyOnUnfound) {
-      console.warn(`Property '${propertyKey}' not found and will return the raw value for ${sourceObject.constructor.name}`);
-      return propertyKey;
-    }
-
-    console.error(`Property '${propertyKey}' not found and will return null or be filtered out of the query for ${sourceObject.constructor.name}`);
-    return null;
+    return propertyKey as string;
   }
 }
 
-export function getType(sourceObject: any, propertyKey: string): propertyType {
+/**
+ * Get the column type from a property. If no type decorator found, it will return 'string'.
+ */
+export function getType<T>(sourceObject: Object, propertyKey: keyof T): propertyType {
   try {
     const factory = new Factory();
-    const targetClass = factory.create(sourceObject);
+    const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey);
+    return Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
   } catch (ex) {
     return 'string';
   }
