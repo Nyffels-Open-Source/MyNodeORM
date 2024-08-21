@@ -1,6 +1,6 @@
 {
   "name": "@nyffels/mysql-query-builder",
-  "version": "1.0.0-alpha.47",
+  "version": "1.0.0-alpha.48",
   "description": "The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL database and build dynamic queries fast and easy.",
   "private": false,
   "main": "dist/index.js",
