@@ -14,13 +14,13 @@ export class QueryBuilder<T> {
   private _updateQueryString: string | null = null;
   private _orderByQueryString: string | null = null;
   private _limitByQueryString: string | null = null;
-  private _whereGroups: { group: WhereGroup, parentId: string | null }[] = [];
+  private _whereGroups: { group: WhereGroup<T>, parentId: string | null }[] = [];
   private _whereRawGroups: { query: string, parentId: string | null }[] = [];
   private _groupByValue: string | null = null;
 
   private _single = false;
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
-  private _joins: JoinValue[] = [];
+  private _joins: JoinValue<any, any>[] = [];
 
   private _isCount = false
 
@@ -206,7 +206,7 @@ export class QueryBuilder<T> {
    * Every group is an isolated logic with different values that ae combined with the AND element.
    * @param group The where group existing from one or multiple properties.
    */
-  public where(group: WhereGroup, parentId: string | null = null) {
+  public where(group: WhereGroup<T>, parentId: string | null = null) {
     this._whereGroups.push({
       parentId: parentId,
       group: group
@@ -247,15 +247,15 @@ export class QueryBuilder<T> {
    * @param properties The properties of the class you wish to use to create the order by.
    * @param direction The direction of the order (ASC / DESC)
    */
-  public orderBy(properties: string | string[] | OrderByValue) {
+  public orderBy(properties: string | string[] | OrderByValue<T>) {
     if (_.isArray(properties)) {
       const columns = properties.map(p => getColumn(this._classObject, p));
       this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
     } else if (typeof properties === 'object') {
       const cProperties = Object.keys(properties);
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
-        const content = properties[prop];
-        let classObject = properties[prop].table && typeof properties[prop].table === "string" ? getObjectById(properties[prop].table) : properties[prop].table ?? this._classObject;
+        const content = (properties as any)[prop];
+        let classObject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classObject;
         if (classObject) {
           throw new Error("Unknown object reference used in orderBy statement of the Query builder!");
         }
@@ -277,7 +277,7 @@ export class QueryBuilder<T> {
   /**
    * Generate a Join sql query parts.
    */
-  public join(joinValue: JoinValue) {
+  public join<S, T>(joinValue: JoinValue<S, T>) {
     this._joins.push(joinValue);
   }
 
@@ -330,7 +330,7 @@ export class QueryBuilder<T> {
       const propertyFragments: string[] = [];
       for (const property of
         Object.keys(group.group)) {
-        let content = group.group[property];
+        let content = (group.group as any)[property];
 
         if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
           content = {value: content};
@@ -414,7 +414,7 @@ export class QueryBuilder<T> {
       this._joins) {
       query += ` ${join.type ?? "LEFT"} JOIN ${getTable(join.table)}`;
       if (!_.isArray(join.on)) {
-        join.on = [join.on as joinOnValue];
+        join.on = [join.on];
       }
       if (typeof join.table === "string") {
         let obj = getObjectById(join.table);
@@ -425,7 +425,7 @@ export class QueryBuilder<T> {
       }
       for (const onValue of
         join.on) {
-        query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, onValue.sourceProperty)} = ${getTable(join.table)}.${getColumn(join.table, onValue.targetProperty)}`;
+        query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, (onValue.sourceProperty as string))} = ${getTable(join.table)}.${getColumn(join.table, (onValue.targetProperty as string))}`;
       }
     }
 
@@ -516,10 +516,10 @@ export class SelectValue<T> {
 }
 
 /**
- * The value of buiilding a order query.
+ * The value of building a order query.
  */
-export class OrderByValue {
-  [property: string]: {
+export type OrderByValue<T> = {
+  [key in keyof T]: {
     direction?: OrderByDirection,
     table?: Object | string
   }
@@ -536,27 +536,28 @@ export enum OrderByDirection {
 /**
  * A group used to create a where value string.
  */
-export class WhereGroup {
-  [key: string]: {
-                   value: any | any[],
-                   type?: WhereCompareType,
-                   table?: Object | string,
-                   orNull?: boolean
-                 } | any;
+export type WhereGroup<T> = {
+  [key in keyof T]: {
+    value: T[key] | T[key][],
+    type?: WhereCompareType,
+    table?: Object | string,
+    orNull?: boolean
+  }
 }
+
 
 /**
  * A join value to join 2 tables.
  */
-export class JoinValue {
+export class JoinValue<S, T> {
   table!: Object | string;
-  on!: joinOnValue | joinOnValue[];
+  on!: joinOnValue<S, T> | joinOnValue<S, T>[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }
 
-interface joinOnValue {
-  sourceProperty: string;
-  targetProperty: string;
+interface joinOnValue<S, T> {
+  sourceProperty: keyof S;
+  targetProperty: keyof T;
 }
 
 
