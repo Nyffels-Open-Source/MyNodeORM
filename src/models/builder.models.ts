@@ -519,7 +519,7 @@ export class SelectValue<T> {
  * The value of building a order query.
  */
 export type OrderByValue<T> = {
-  [key in keyof T]: {
+  [key in keyof T]?: {
     direction?: OrderByDirection,
     table?: Object | string
   }
@@ -537,12 +537,12 @@ export enum OrderByDirection {
  * A group used to create a where value string.
  */
 export type WhereGroup<T> = {
-  [key in keyof T]: {
+  [key in keyof T]?: {
     value: T[key] | T[key][],
     type?: WhereCompareType,
     table?: Object | string,
     orNull?: boolean
-  }
+  } | T[key] | T[key][]
 }
 
 
