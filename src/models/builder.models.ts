@@ -256,9 +256,6 @@ export class QueryBuilder<T> {
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = (properties as any)[prop];
         let classObject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classObject;
-        if (classObject) {
-          throw new Error("Unknown object reference used in orderBy statement of the Query builder!");
-        }
         if (!_.isNil(content.table)) {
           classObject = content.table;
         }
