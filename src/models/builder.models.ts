@@ -276,6 +276,7 @@ export class QueryBuilder<T> {
    */
   public join<source, target>(joinValue: JoinValue<source, target>) {
     this._joins.push(joinValue);
+    return this;
   }
 
   /**
