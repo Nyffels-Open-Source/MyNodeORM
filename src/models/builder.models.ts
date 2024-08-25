@@ -260,7 +260,7 @@ export class QueryBuilder<T> {
    * @param properties The properties of the class you wish to use to create the order by.
    * @param direction The direction of the order (ASC / DESC)
    */
-  public orderBy(properties: string | string[] | OrderByValue<T>) {
+  public orderBy(properties: (keyof T) | (keyof T)[] | OrderByValue<T>) {
     if (_.isArray(properties)) {
       const columns = properties.map(p => getColumn(this._classObject, p));
       this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
