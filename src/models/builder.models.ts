@@ -22,7 +22,8 @@ export class QueryBuilder<T> {
   private _queryType: 'SELECT' | 'UPDATE' | 'INSERT' | 'DELETE' = 'SELECT';
   private _joins: JoinValue<any, any>[] = [];
 
-  private _isCount = false
+  private _isCount = false;
+  private _isSum = false;
 
   /**
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
@@ -100,6 +101,18 @@ export class QueryBuilder<T> {
     this._queryType = "SELECT";
     this._selectQueryString = `COUNT(*) as count`;
     this._isCount = true;
+    this.single();
+    return this;
+  }
+
+  /**
+   * Create a sum select query. The result of the execute will not be a summed value with type of number. The only accepted type parameter for execute function in combination with sum is number.
+   * @param field The field you wish to take the sum of.
+   */
+  public sum(field: (keyof T)) {
+    this._queryType = "SELECT";
+    this._selectQueryString = `SUM(${getColumn(this._classObject, field)}) as sum`;
+    this._isSum = true;
     this.single();
     return this;
   }
@@ -482,6 +495,8 @@ export class QueryBuilder<T> {
         const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
         if (this._isCount) {
           return res.find(x => (x as any).count) as T;
+        } else if (this._isSum) {
+          return res.find(x => (x as any).sum) as T;
         } else if (this._single) {
           return res.find(x => x) as T;
         } else {
