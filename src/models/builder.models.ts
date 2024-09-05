@@ -343,7 +343,7 @@ export class QueryBuilder<T> {
         Object.keys(group.group)) {
         let content = (group.group as any)[property];
 
-        if (typeof content !== "object" || content === null || content.constructor.name === 'DatabaseSystemValue') {
+        if (typeof content !== "object" || _.isArray(content) || content === null || content.constructor.name === 'DatabaseSystemValue') {
           content = {value: content};
         }
 
