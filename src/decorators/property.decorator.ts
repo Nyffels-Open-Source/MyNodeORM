@@ -28,6 +28,16 @@ export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
 }
 
 /**
+ * Get all the properties of a object.
+ */
+export function getAllProperties<T>(object: Object) {
+  const factory = new Factory();
+  const targetClass = factory.create<T>(object as any);
+
+  return Object.keys(targetClass as any) as (keyof T)[];
+}
+
+/**
  * Get the column type from a property. If no type decorator found, it will return 'string'.
  */
 export function getType<T>(sourceObject: Object, propertyKey: keyof T): propertyType {

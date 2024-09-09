@@ -1,4 +1,4 @@
-import {getColumn, getObjectById, getTable, getType} from "../decorators";
+import {getAllProperties, getColumn, getObjectById, getTable, getType} from "../decorators";
 import _ from "lodash";
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic";
 import {Factory} from "./factory.models";
@@ -46,10 +46,14 @@ export class QueryBuilder<T> {
   /**
    * Add the fields by property keys of the loaded class to the select query.
    */
-  public select(properties: (keyof T | SelectValue<T>)[] = []) {
+  public select(properties: (keyof T | SelectValue<T>)[] = [], allowSelectAll = true) {
     if ((properties ?? []).length <= 0) {
-      this._selectQueryString = "*"
-      return this;
+      if (allowSelectAll === true) {
+        this._selectQueryString = "*";
+        return this;
+      } else {
+        properties = getAllProperties<T>(this._classObject);
+      }
     }
 
     const columns = properties.map(p => {
@@ -57,6 +61,10 @@ export class QueryBuilder<T> {
 
         const column = getColumn(this._classObject, p as string);
         const table = getTable(this._classObject);
+
+        if (_.isNil(column)) {
+          return "";
+        }
 
         return `${table}.${column}`;
       } else {
@@ -69,6 +77,10 @@ export class QueryBuilder<T> {
           const classObject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getObjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
           const table = getTable(classObject ?? this._classObject);
           const column = getColumn(classObject ?? this._classObject, (p as SelectValue<T>).property);
+
+          if (_.isNil(column)) {
+            return "";
+          }
 
           const noAliasQueryFragment = `${table}.${column}`;
           return ((p as SelectValue<T>).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue<T>).alias}` : noAliasQueryFragment;
@@ -349,12 +361,12 @@ export class QueryBuilder<T> {
 
         let dbColumn = "";
         let dbTable = "";
-        if (!_.isNil(content.externalObject)) {
-          if (typeof content.externalObject === "string") {
-            content.externalObject = getObjectById(content.externalObject);
+        if (!_.isNil(content.table)) {
+          if (typeof content.table === "string") {
+            content.table = getObjectById(content.table);
           }
-          dbColumn = getColumn(content.externalObject, property);
-          dbTable = getTable(content.externalObject);
+          dbColumn = getColumn(content.table, property);
+          dbTable = getTable(content.table);
         } else {
           dbColumn = getColumn(this._classObject, property);
           dbTable = getTable(this._classObject);
@@ -418,7 +430,7 @@ export class QueryBuilder<T> {
    * Generate a select query.
    */
   private generateSelectQuery() {
-    let query = `SELECT ${this._selectQueryString ?? '*'}
+    let query = `SELECT ${this._selectQueryString ?? "*"}
                  FROM ${getTable(this._classObject)}`;
 
     for (const join of
