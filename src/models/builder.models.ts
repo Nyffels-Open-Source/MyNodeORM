@@ -499,19 +499,20 @@ export class QueryBuilder<T> {
   /**
    * Execute the builded query.
    */
-  public async execute<T = any>(): Promise<T> {
+  public async execute<T = any>(table: Object = this._classObject): Promise<T> {
     switch (this._queryType) {
       case 'SELECT': {
         const selectQuery = this.generateSelectQuery();
         const queryRes = await doQuery(selectQuery);
-        const res = queryResultToObject<typeof this._classObject>(this._classObject, queryRes);
         if (this._isCount) {
-          return res.find(x => (x as any).count) as T;
+          return queryRes.find(x => x).count as T;
         } else if (this._isSum) {
-          return res.find(x => (x as any).sum) as T;
+          return queryRes.find(x => x).sum as T;
         } else if (this._single) {
+          const res = queryResultToObject<typeof table>(table, queryRes);
           return res.find(x => x) as T;
         } else {
+          const res = queryResultToObject<typeof table>(table, queryRes);
           return res as typeof this._classObject[] as any;
         }
       }
