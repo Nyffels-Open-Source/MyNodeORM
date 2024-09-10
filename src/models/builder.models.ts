@@ -297,6 +297,15 @@ export class QueryBuilder<T> {
   }
 
   /**
+   * Give a raw query that will be pasted in the orderBy part.
+   * @param whereQuery
+   */
+  public orderByRaw(orderByQuery: string) {
+    this._orderByQueryString = `ORDER BY ${orderByQuery}`;
+    return this;
+  }
+
+  /**
    * Generate a Join sql query parts.
    */
   public join<source, target>(joinValue: JoinValue<source, target>) {
