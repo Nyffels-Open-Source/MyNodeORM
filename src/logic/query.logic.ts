@@ -46,7 +46,6 @@ export function queryResultToObject<T = any>(classObject: Object, results: any[]
                 }
             }
         });
-        console.log(resultObject);
         result.push(resultObject);
     });
     return (result as T[]);
