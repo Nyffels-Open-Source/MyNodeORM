@@ -1,5 +1,5 @@
-import {Factory} from "../models";
-import {getColumn} from "../decorators";
+import {Factory, getColumn, getType} from "@nyffels/mysql-query-builder";
+import _ from "lodash";
 
 /**
  * Convert a query result to an object.
@@ -22,9 +22,30 @@ export function queryResultToObject<T = any>(classObject: Object, results: any[]
         classProperties.forEach((p) => {
             const column = getColumn(classObject, p);
             if (column) {
-                resultObject[p] = r[column];
+                const type = getType(classObject, p);
+
+                switch (type) {
+                    case 'number': {
+                        resultObject[p] = !_.isNil(r[column]) ? +r[column] : null;
+                        break;
+                    }
+                    case 'boolean': {
+                        resultObject[p] = !_.isNil(r[column]) ? !!r[column] : null;
+                        break;
+                    }
+                    case 'date':
+                    case 'datetime': {
+                        resultObject[p] = !_.isNil(r[column]) ? new Date(r[column]) : null;
+                        break;
+                    }
+                    default: {
+                        resultObject[p] = !_.isNil(r[column]) ? '' + r[column] : null;
+                        break;
+                    }
+                }
             }
         });
+        console.log(resultObject);
         result.push(resultObject);
     });
     return (result as T[]);
