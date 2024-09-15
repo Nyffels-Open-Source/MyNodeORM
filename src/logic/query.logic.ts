@@ -1,5 +1,6 @@
-import {Factory, getColumn, getType} from "@nyffels/mysql-query-builder";
 import _ from "lodash";
+import {getColumn, getType} from "../decorators";
+import {Factory} from "../models";
 
 /**
  * Convert a query result to an object.
