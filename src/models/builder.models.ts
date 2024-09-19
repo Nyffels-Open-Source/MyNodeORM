@@ -370,15 +370,18 @@ export class QueryBuilder<T> {
 
         let dbColumn = "";
         let dbTable = "";
+        let dbClassObject;
         if (!_.isNil(content.table)) {
           if (typeof content.table === "string") {
             content.table = getObjectById(content.table);
           }
           dbColumn = getColumn(content.table, property);
           dbTable = getTable(content.table);
+          dbClassObject = content.table;
         } else {
           dbColumn = getColumn(this._classObject, property);
           dbTable = getTable(this._classObject);
+          dbClassObject = this._classObject;
         }
 
         if (_.isArray(content.value)) {
@@ -404,7 +407,7 @@ export class QueryBuilder<T> {
             content.type = WhereCompareType.EQUAL;
           }
 
-          const parsedValue = parseValue(this._classObject, property, content.value);
+          const parsedValue = parseValue(dbClassObject, property, content.value);
           if (parsedValue == "NULL" && content.type == WhereCompareType.EQUAL) {
             content.type = "IS";
           } else if (parsedValue == "NULL" && content.type == WhereCompareType.NOTEQUAL) {
