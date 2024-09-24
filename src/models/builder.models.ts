@@ -31,11 +31,11 @@ export class QueryBuilder<T> {
    */
   constructor(classobject: object | string) {
     if (typeof classobject === "string") {
-      const object = getobjectById(classobject);
+      const object = getObjectById(classobject);
       if (object === null) {
         throw new Error("No object found that matches " + classobject + "!");
       }
-      this._classobject = getobjectById(classobject) as object;
+      this._classobject = getObjectById(classobject) as object;
     } else {
       this._classobject = classobject;
     }
@@ -74,7 +74,7 @@ export class QueryBuilder<T> {
             throw new Error('Incorrect selectValue object');
           }
 
-          const classobject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getobjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
+          const classobject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getObjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
           const table = getTable(classobject ?? this._classobject);
           const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property);
 
@@ -259,7 +259,7 @@ export class QueryBuilder<T> {
   public groupBy(property: string, table?: any | string) {
     const columnQuery = getColumn(this._classobject, property);
     if (table && typeof table === "string") {
-      table = getobjectById(table);
+      table = getObjectById(table);
     }
     const tableQuery = getTable(table ?? this._classobject);
 
@@ -280,7 +280,7 @@ export class QueryBuilder<T> {
       const cProperties = Object.keys(properties);
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = (properties as any)[prop];
-        let classobject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getobjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classobject;
+        let classobject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classobject;
         if (!_.isNil(content.table)) {
           classobject = content.table;
         }
@@ -373,7 +373,7 @@ export class QueryBuilder<T> {
         let dbClassobject;
         if (!_.isNil(content.table)) {
           if (typeof content.table === "string") {
-            content.table = getobjectById(content.table);
+            content.table = getObjectById(content.table);
           }
           dbColumn = getColumn(content.table, property);
           dbTable = getTable(content.table);
@@ -452,7 +452,7 @@ export class QueryBuilder<T> {
         join.on = [join.on];
       }
       if (typeof join.table === "string") {
-        const obj = getobjectById(join.table);
+        const obj = getObjectById(join.table);
         if (obj === null) {
           throw new Error("Cannot generate select query due to incorrect table reference at join.");
         }
@@ -521,10 +521,10 @@ export class QueryBuilder<T> {
         } else if (this._isSum) {
           return queryRes.find(x => x).sum as T;
         } else if (this._single) {
-          const res = queryResultToobject<typeof table>(table, queryRes);
+          const res = queryResultToObject<typeof table>(table, queryRes);
           return res.find(x => x) as T;
         } else {
-          const res = queryResultToobject<typeof table>(table, queryRes);
+          const res = queryResultToObject<typeof table>(table, queryRes);
           return res as typeof this._classobject[] as any;
         }
       }
