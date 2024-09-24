@@ -1,4 +1,4 @@
-import {getAllProperties, getColumn, getObjectById, getTable, getType} from "../decorators";
+import {getAllProperties, getColumn, getObjectById, getTable} from "../decorators";
 import _ from "lodash";
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic";
 import {Factory} from "./factory.models";
@@ -7,7 +7,7 @@ import {Factory} from "./factory.models";
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
  */
 export class QueryBuilder<T> {
-  private _classObject: Object;
+  private _classobject: object;
 
   private _selectQueryString: string = "*";
   private _insertQueryString: string | null = null;
@@ -27,17 +27,17 @@ export class QueryBuilder<T> {
 
   /**
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
-   * @param classObject The object with the decorators
+   * @param classobject The object with the decorators
    */
-  constructor(classObject: Object | string) {
-    if (typeof classObject === "string") {
-      const object = getObjectById(classObject);
+  constructor(classobject: object | string) {
+    if (typeof classobject === "string") {
+      const object = getobjectById(classobject);
       if (object === null) {
-        throw new Error("No object found that matches " + classObject + "!");
+        throw new Error("No object found that matches " + classobject + "!");
       }
-      this._classObject = getObjectById(classObject) as Object;
+      this._classobject = getobjectById(classobject) as object;
     } else {
-      this._classObject = classObject;
+      this._classobject = classobject;
     }
   }
 
@@ -52,15 +52,15 @@ export class QueryBuilder<T> {
         this._selectQueryString = "*";
         return this;
       } else {
-        properties = getAllProperties<T>(this._classObject);
+        properties = getAllProperties<T>(this._classobject);
       }
     }
 
     const columns = properties.map(p => {
       if ((typeof p) === "string") {
 
-        const column = getColumn(this._classObject, p as string);
-        const table = getTable(this._classObject);
+        const column = getColumn(this._classobject, p as string);
+        const table = getTable(this._classobject);
 
         if (_.isNil(column)) {
           return "";
@@ -74,9 +74,9 @@ export class QueryBuilder<T> {
             throw new Error('Incorrect selectValue object');
           }
 
-          const classObject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getObjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
-          const table = getTable(classObject ?? this._classObject);
-          const column = getColumn(classObject ?? this._classObject, (p as SelectValue<T>).property);
+          const classobject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getobjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
+          const table = getTable(classobject ?? this._classobject);
+          const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property);
 
           if (_.isNil(column)) {
             return "";
@@ -123,7 +123,7 @@ export class QueryBuilder<T> {
    */
   public sum(field: (keyof T)) {
     this._queryType = "SELECT";
-    this._selectQueryString = `SUM(${getColumn(this._classObject, field)}) as sum`;
+    this._selectQueryString = `SUM(${getColumn(this._classobject, field)}) as sum`;
     this._isSum = true;
     this.single();
     return this;
@@ -142,20 +142,20 @@ export class QueryBuilder<T> {
     }
 
     const factory = new Factory();
-    const targetClass = factory.create(this._classObject as any);
+    const targetClass = factory.create(this._classobject as any);
 
-    let properties: string[] = onlyIncludeSourceProperties ? Object.keys((source as any[]).find(x => x)) : Object.keys(targetClass as any);
-    let columns = properties.map(p => getColumn(this._classObject, p));
+    const properties: string[] = onlyIncludeSourceProperties ? Object.keys((source as any[]).find(x => x)) : Object.keys(targetClass as any);
+    const columns = properties.map(p => getColumn(this._classobject, p));
 
     const valuesFragments: string[] = [];
 
-    for (let s of
+    for (const s of
       source) {
       const values: string[] = [];
 
       for (const property of
         properties) {
-        const value = parseValue(this._classObject, property, (s as any)[property]);
+        const value = parseValue(this._classobject, property, (s as any)[property]);
         values.push(value as any);
       }
 
@@ -188,7 +188,7 @@ export class QueryBuilder<T> {
       sourceProperties = Object.keys(source);
     }
     const factory = new Factory();
-    const targetClass = factory.create(this._classObject as any);
+    const targetClass = factory.create(this._classobject as any);
 
     const fragments: string[] = [];
     const properties = Object.keys(targetClass as any);
@@ -199,8 +199,8 @@ export class QueryBuilder<T> {
         continue;
       }
 
-      const column = getColumn(this._classObject, property);
-      const value = parseValue(this._classObject, property, (source as any)[property]);
+      const column = getColumn(this._classobject, property);
+      const value = parseValue(this._classobject, property, (source as any)[property]);
       fragments.push(`${column} = ${value}`);
     }
 
@@ -257,11 +257,11 @@ export class QueryBuilder<T> {
    * @param property The property your query has to group by
    */
   public groupBy(property: string, table?: any | string) {
-    const columnQuery = getColumn(this._classObject, property);
+    const columnQuery = getColumn(this._classobject, property);
     if (table && typeof table === "string") {
-      table = getObjectById(table);
+      table = getobjectById(table);
     }
-    const tableQuery = getTable(table ?? this._classObject);
+    const tableQuery = getTable(table ?? this._classobject);
 
     this._groupByValue = `${tableQuery}.${columnQuery}`;
     return this;
@@ -274,22 +274,22 @@ export class QueryBuilder<T> {
    */
   public orderBy(properties: (keyof T) | (keyof T)[] | OrderByValue<T>) {
     if (_.isArray(properties)) {
-      const columns = properties.map(p => getColumn(this._classObject, p));
+      const columns = properties.map(p => getColumn(this._classobject, p));
       this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
     } else if (typeof properties === 'object') {
       const cProperties = Object.keys(properties);
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = (properties as any)[prop];
-        let classObject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classObject;
+        let classobject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getobjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classobject;
         if (!_.isNil(content.table)) {
-          classObject = content.table;
+          classobject = content.table;
         }
-        return `${getTable(classObject as Object)}.${getColumn(classObject as Object, prop)} ${content.direction}`
+        return `${getTable(classobject as object)}.${getColumn(classobject as object, prop)} ${content.direction}`
       })
         .join(', ')}`;
     } else {
-      const table = getTable(this._classObject);
-      const column = [getColumn(this._classObject, properties as string)];
+      const table = getTable(this._classobject);
+      const column = [getColumn(this._classobject, properties as string)];
       this._orderByQueryString = `ORDER BY ${table}.${column}`;
     }
 
@@ -357,7 +357,7 @@ export class QueryBuilder<T> {
    * Convert the wheregroup array to the where string.
    */
   private convertWheregroupsToWhereString() {
-    for (let group of
+    for (const group of
       this._whereGroups) {
       const propertyFragments: string[] = [];
       for (const property of
@@ -370,18 +370,18 @@ export class QueryBuilder<T> {
 
         let dbColumn = "";
         let dbTable = "";
-        let dbClassObject;
+        let dbClassobject;
         if (!_.isNil(content.table)) {
           if (typeof content.table === "string") {
-            content.table = getObjectById(content.table);
+            content.table = getobjectById(content.table);
           }
           dbColumn = getColumn(content.table, property);
           dbTable = getTable(content.table);
-          dbClassObject = content.table;
+          dbClassobject = content.table;
         } else {
-          dbColumn = getColumn(this._classObject, property);
-          dbTable = getTable(this._classObject);
-          dbClassObject = this._classObject;
+          dbColumn = getColumn(this._classobject, property);
+          dbTable = getTable(this._classobject);
+          dbClassobject = this._classobject;
         }
 
         if (_.isArray(content.value)) {
@@ -392,12 +392,12 @@ export class QueryBuilder<T> {
           switch (content.type) {
             case WhereCompareType.BETWEEN:
             case WhereCompareType.NOTBETWEEN: {
-              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parseValue(this._classObject, property, content.value[0])} AND ${parseValue(this._classObject, property, content.value[1])}`);
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parseValue(this._classobject, property, content.value[0])} AND ${parseValue(this._classobject, property, content.value[1])}`);
               break;
             }
             case WhereCompareType.IN:
             case WhereCompareType.NOTIN: {
-              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classObject, property, v))
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classobject, property, v))
                 .join(", ")})`);
               break;
             }
@@ -407,7 +407,7 @@ export class QueryBuilder<T> {
             content.type = WhereCompareType.EQUAL;
           }
 
-          const parsedValue = parseValue(dbClassObject, property, content.value);
+          const parsedValue = parseValue(dbClassobject, property, content.value);
           if (parsedValue == "NULL" && content.type == WhereCompareType.EQUAL) {
             content.type = "IS";
           } else if (parsedValue == "NULL" && content.type == WhereCompareType.NOTEQUAL) {
@@ -443,7 +443,7 @@ export class QueryBuilder<T> {
    */
   private generateSelectQuery() {
     let query = `SELECT ${this._selectQueryString ?? "*"}
-                 FROM ${getTable(this._classObject)}`;
+                 FROM ${getTable(this._classobject)}`;
 
     for (const join of
       this._joins) {
@@ -452,15 +452,15 @@ export class QueryBuilder<T> {
         join.on = [join.on];
       }
       if (typeof join.table === "string") {
-        let obj = getObjectById(join.table);
+        const obj = getobjectById(join.table);
         if (obj === null) {
           throw new Error("Cannot generate select query due to incorrect table reference at join.");
         }
-        join.table = obj as Object;
+        join.table = obj as object;
       }
       for (const onValue of
         join.on) {
-        query += ` ON ${getTable(this._classObject)}.${getColumn(this._classObject, (onValue.sourceProperty as string))} = ${getTable(join.table)}.${getColumn(join.table, (onValue.targetProperty as string))}`;
+        query += ` ON ${getTable(this._classobject)}.${getColumn(this._classobject, (onValue.sourceProperty as string))} = ${getTable(join.table)}.${getColumn(join.table, (onValue.targetProperty as string))}`;
       }
     }
 
@@ -485,7 +485,7 @@ export class QueryBuilder<T> {
    * Generate a insert query.
    */
   private generateInsertQuery() {
-    return `INSERT INTO ${getTable(this._classObject)} ${this._insertQueryString}`;
+    return `INSERT INTO ${getTable(this._classobject)} ${this._insertQueryString}`;
   }
 
   /**
@@ -493,7 +493,7 @@ export class QueryBuilder<T> {
    */
   private generateDeleteQuery() {
     let query = `DELETE
-                 FROM ${getTable(this._classObject)}`;
+                 FROM ${getTable(this._classobject)}`;
     query += `${this.convertWheregroupsToWhereString()}`;
     return query;
   }
@@ -502,7 +502,7 @@ export class QueryBuilder<T> {
    * Generate a update query
    */
   private generateUpdateQuery() {
-    let query = `UPDATE ${getTable(this._classObject)}
+    let query = `UPDATE ${getTable(this._classobject)}
                  SET ${this._updateQueryString}`;
     query += `${this.convertWheregroupsToWhereString()}`;
     return query;
@@ -511,7 +511,7 @@ export class QueryBuilder<T> {
   /**
    * Execute the builded query.
    */
-  public async execute<T = any>(table: Object = this._classObject): Promise<T> {
+  public async execute<T = any>(table: object = this._classobject): Promise<T> {
     switch (this._queryType) {
       case 'SELECT': {
         const selectQuery = this.generateSelectQuery();
@@ -521,11 +521,11 @@ export class QueryBuilder<T> {
         } else if (this._isSum) {
           return queryRes.find(x => x).sum as T;
         } else if (this._single) {
-          const res = queryResultToObject<typeof table>(table, queryRes);
+          const res = queryResultToobject<typeof table>(table, queryRes);
           return res.find(x => x) as T;
         } else {
-          const res = queryResultToObject<typeof table>(table, queryRes);
-          return res as typeof this._classObject[] as any;
+          const res = queryResultToobject<typeof table>(table, queryRes);
+          return res as typeof this._classobject[] as any;
         }
       }
       case 'UPDATE': {
@@ -550,7 +550,7 @@ export class QueryBuilder<T> {
 export class SelectValue<T> {
   public property!: keyof T;
   public alias?: string;
-  public table?: Object | string
+  public table?: object | string
 }
 
 /**
@@ -559,7 +559,7 @@ export class SelectValue<T> {
 export type OrderByValue<T> = {
   [key in keyof T]?: {
     direction?: OrderByDirection,
-    table?: Object | string
+    table?: object | string
   }
 }
 
@@ -578,7 +578,7 @@ export type WhereGroup<T> = {
   [key in keyof T]?: {
                        value: T[key] | T[key][],
                        type?: WhereCompareType,
-                       table?: Object | string,
+                       table?: object | string,
                        orNull?: boolean
                      } | T[key] | T[key][]
 }
@@ -601,7 +601,7 @@ export type InsertValue<T> = {
  * A join value to join 2 tables.
  */
 export class JoinValue<source, target> {
-  table!: Object | string;
+  table!: object | string;
   on!: joinOnValue<source, target> | joinOnValue<source, target>[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }
