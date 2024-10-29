@@ -24,6 +24,9 @@ export class QueryBuilder<T> {
 
   private _isCount = false;
   private _isSum = false;
+  private _isMin = false;
+  private _isMax = false;
+  private _isAvg = false;
 
   /**
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
@@ -118,13 +121,49 @@ export class QueryBuilder<T> {
   }
 
   /**
-   * Create a sum select query. The result of the execute will not be a summed value with type of number. The only accepted type parameter for execute function in combination with sum is number.
+   * Create a sum select query. The result of the execute will be a summed value with type of number. The only accepted type parameter for execute function in combination with sum is number.
    * @param field The field you wish to take the sum of.
    */
   public sum(field: (keyof T)) {
     this._queryType = "SELECT";
     this._selectQueryString = `SUM(${getColumn(this._classobject, field)}) as sum`;
     this._isSum = true;
+    this.single();
+    return this;
+  }
+
+  /**
+   * Create a min select query. The result of the execute will be the minimum value of the fields you compared with type of number. The only accepted type parameter for execute function in combination with min is number. 
+   * @param field The field you wish to take the min of.
+   */
+  public min(field: (keyof T)) {
+    this._queryType = "SELECT";
+    this._selectQueryString = `MIN(${getColumn(this._classobject, field)}) as min`;
+    this._isMin = true; 
+    this.single();
+    return this;
+  }
+
+  /**
+   * Create a max select query. The result of the execute will be the maximum value of the fields you compared with type of number. The only accepted type parameter for execute function in combination with max is number.
+   * @param field The field you wish to take the min of.
+   */
+  public max(field: (keyof T)) {
+    this._queryType = "SELECT";
+    this._selectQueryString = `MAX(${getColumn(this._classobject, field)}) as max`;
+    this._isMax = true;
+    this.single();
+    return this;
+  }
+
+  /**
+   * Create a avg select query. The result of the execute will be the average value of the fields you compared with type of number. The only accepted type parameter for execute function in combination with avg is number.
+   * @param field The field you wish to take the min of.
+   */
+  public avg(field: (keyof T)) {
+    this._queryType = "SELECT";
+    this._selectQueryString = `AVG(${getColumn(this._classobject, field)}) as avg`;
+    this._isAvg = true;
     this.single();
     return this;
   }
@@ -520,6 +559,12 @@ export class QueryBuilder<T> {
           return queryRes.find(x => x).count as T;
         } else if (this._isSum) {
           return queryRes.find(x => x).sum as T;
+        } else if (this._isMin) {
+          return queryRes.find(x => x).min as T;
+        } else if (this._isMax) {
+          return queryRes.find(x => x).max as T;
+        } else if (this._isAvg) {
+          return queryRes.find(x => x).avg as T;
         } else if (this._single) {
           const res = queryResultToObject<typeof table>(table, queryRes);
           return res.find(x => x) as T;
