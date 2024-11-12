@@ -1,12 +1,12 @@
 {
-  "name": "@nyffels/mysql-query-builder",
-  "version": "1.0.0-alpha.62",
-  "description": "The ultimate MySQL tool for connecting a Typescript / NodeJS project to a MySQL database and build dynamic queries fast and easy.",
+  "name": "@nyffels/mynodeorm",
+  "version": "1.0.0-alpha63",
+  "description": "A full-fledged ORM framework for NodeJS and MySQL with develop friendly code aimed to handle database migrations, MySQL Query builder / helper and property mapping.",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
-    "url": "https://github.com/Nyffels-IT/mysql-query-builder",
+    "url": "https://github.com/Nyffels-Open-Source/MyNodeORM",
     "type": "git"
   },
   "scripts": {
@@ -17,7 +17,9 @@
     "mysql2",
     "query",
     "builder",
-    "query builder"
+    "query builder",
+    "orm",
+    "nodejs"
   ],
   "author": "Nyffels BV",
   "contributors": [
