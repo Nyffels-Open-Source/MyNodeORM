@@ -56,19 +56,23 @@ if (args.includes("--migration")) {
 
   const name = args.find((a) => a.includes('--name='))
     ?.replace('--name=', '') ?? "";
+  
+  // Check if name exists 
+  // if name not exists version is 1
+  // if name exists version is version + 1
+  const version = 10;
+  const migrationName = getDateFormat() + (version > 0 ? (`.${version}`) : "") + "_" + name;
 
-  const migrationName = getDateFormat() + "_" + name;
+  console.log(migrationName);
 }
 
- function getDateFormat() {
+function getDateFormat() {
   const date = new Date();
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const second = date.getSeconds();
-  const milliseconds = date.getMilliseconds();
+  const year = date.getFullYear()
+    .toString();
+  const month = (date.getMonth() + 1).toString();
+  const day = date.getDate()
+    .toString();
 
-  return year + month + day + day + hour + minute + milliseconds;
+  return year + month + day;
 }
