@@ -3,24 +3,30 @@ import fs from 'fs';
 import _ from "lodash";
 
 const args = process.argv.slice(2);
+let workdir = process.cwd();
+console.log(workdir);
+if (args.some(e => /^--workdir=*./.test(e))) {
+  workdir = args.find(a => a.includes("--workdir="))
+    ?.replace("--workdir=", "") ?? "";
+}
 
 if (args.includes("--create-config")) {
   const fileLocationRaw = args.find(a => a.includes('--location='));
   const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
-  const fullPath = fileLocation.startsWith(".") ? path.join(process.cwd(), fileLocation) : fileLocation;
+  const fullPath = fileLocation.startsWith(".") ? path.join(workdir, fileLocation) : fileLocation;
 
   const host = args.find((a) => a.includes('--host='))
-    ?.replace('--host=', '');
+    ?.replace('--host=', '') ?? "";
   const port = args.find((a) => a.includes('--port='))
-    ?.replace('--port=', '');
+    ?.replace('--port=', '') ?? "";
   const user = args.find((a) => a.includes('--user='))
-    ?.replace('--user=', '');
+    ?.replace('--user=', '') ?? "";
   const password = args.find((a) => a.includes('--password='))
-    ?.replace('--password=', '');
+    ?.replace('--password=', '') ?? "";
   const database = args.find((a) => a.includes('--database='))
-    ?.replace('--database=', '');
+    ?.replace('--database=', '') ?? "";
 
-  const fullPathWithFile = path.join(fullPath, "mynodeorm-config.json");
+  const fullPathWithFile = path.join(fullPath, "mynodeorm-mysql-config.json");
   if (fs.existsSync(fullPathWithFile)) {
     fs.unlinkSync(fullPathWithFile);
   }
@@ -35,24 +41,34 @@ if (args.includes("--create-config")) {
     }
   }
   fs.writeFileSync(fullPathWithFile, JSON.stringify(config), {encoding: "utf8"});
-} else if (args.includes("--create-migration-script")) {
-  const fileLocationRaw = args.find(a => a.includes('--location='));
-  const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
-  const fullPath = fileLocation.startsWith(".") ? path.join(process.cwd(), fileLocation) : fileLocation;
 
-  const fullPathWithFile = path.join(fullPath, "mynodeorm-migration.ts");
-  if (fs.existsSync(fullPathWithFile)) {
-    fs.unlinkSync(fullPathWithFile);
-  }
-  
-  const script =  ``; // TODO
-  fs.writeFileSync(fullPathWithFile, script, {encoding: "utf8"});
-} else if (args.includes("--migration")) {
-  const migrationName = args.find(a => a.includes("--name="))
-    ?.replace("--name=", "");
-  if (_.isNil(migrationName)) {
-    throw Error("Migration requires a name");
+  const schemaScriptPath = path.join(fullPath, "mynodeorm-migration-config.js");
+  let migrationsScript = `
+    const dbClasses = [];
+  `;
+  fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
+}
+
+if (args.includes("--migration")) {
+  if (!args.some(e => /^--name=*./.test(e))) {
+    throw Error("Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
   }
 
-  // TODO
+  const name = args.find((a) => a.includes('--name='))
+    ?.replace('--name=', '') ?? "";
+
+  const migrationName = getDateFormat() + "_" + name;
+}
+
+ function getDateFormat() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const second = date.getSeconds();
+  const milliseconds = date.getMilliseconds();
+
+  return year + month + day + day + hour + minute + milliseconds;
 }
