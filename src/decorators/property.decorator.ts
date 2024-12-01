@@ -7,6 +7,7 @@ const typeMetaDatakey = Symbol('type');
 const primaryMetaDatakey = Symbol('primary');
 const nullableMetaDatakey = Symbol('nullable');
 const uniqueMetaDatakey = Symbol('unique');
+const indexMetaDatakey = Symbol('index');
 const unsignedMetaDatakey = Symbol('unsigned');
 const autoIncrementMetaDatakey = Symbol('autoIncrement');
 const defaultMetaDatakey = Symbol('default');
@@ -44,8 +45,15 @@ export function defaultSql(sql: string) {
   return Reflect.metadata(defaultMetaDatakey, sql);
 }
 
-export function foreignKey<T>(table: T, column: keyof T) {
-  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table, column}));
+export function foreignKey<T>(table: T, column: keyof T, onDelete: ForeignKeyOption.Restrict, onUpdate: ForeignKeyOption = ForeignKeyOption.Restrict) {
+  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table, column, onDelete, onUpdate}));
+}
+
+export enum ForeignKeyOption {
+  Restrict = 0,
+  Cascade = 1,
+  SetNull = 2,
+  NoAction = 3
 }
 
 /**

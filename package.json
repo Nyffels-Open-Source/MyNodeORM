@@ -3,6 +3,9 @@
   "version": "1.0.0-alpha64",
   "description": "A full-fledged ORM framework for NodeJS and MySQL with develop friendly code aimed to handle database migrations, MySQL Query builder / helper and property mapping.",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
