@@ -1,6 +1,5 @@
-import path from "path";
-import fs from 'fs';
-import _ from "lodash";
+import path from "node:path";
+import * as fs from "node:fs";
 
 const args = process.argv.slice(2);
 let workdir = process.cwd();
@@ -10,7 +9,7 @@ if (args.some(e => /^--workdir=*./.test(e))) {
     ?.replace("--workdir=", "") ?? "";
 }
 
-if (args.includes("--create-config")) {
+if (args.includes("--create-config-mysql")) {
   const fileLocationRaw = args.find(a => a.includes('--location='));
   const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
   const fullPath = fileLocation.startsWith(".") ? path.join(workdir, fileLocation) : fileLocation;
@@ -47,6 +46,7 @@ if (args.includes("--create-config")) {
     const dbClasses = [];
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
+  console.log("Config file created and saved at " + fullPathWithFile + ".");
 }
 
 if (args.includes("--migration")) {
@@ -57,13 +57,29 @@ if (args.includes("--migration")) {
   const name = args.find((a) => a.includes('--name='))
     ?.replace('--name=', '') ?? "";
   
-  // Check if name exists 
-  // if name not exists version is 1
-  // if name exists version is version + 1
+  const migrationLocationPath = args.find((a) => a.includes('--migration-location='))?.replace('--migration-location=', '') ?? "./";
+  const migrationLocation = path.join(process.cwd(), migrationLocationPath, "migrations");
+  
+  const configurationLocationPath = args.find((a) => a.includes('--config-location='))?.replace('--config-location=', '') ?? "./";
+  const configurationLocation = path.join(process.cwd(), configurationLocationPath, "mynodeorm-migration-config.js");
+  
+  if (!fs.existsSync(configurationLocation)) {
+    console.log(`Configuration not found on location ${configurationLocation}`);
+    process.exit(1);
+  }
+
+  let firstMigration = false;
+  if (!fs.existsSync(migrationLocation)) {
+    firstMigration = true;
+    console.log("Migration location does not exists... Creating folder.");
+    fs.mkdirSync(migrationLocation, { recursive: true });
+  }
+  
   const version = 10;
   const migrationName = getDateFormat() + (version > 0 ? (`.${version}`) : "") + "_" + name;
-
-  console.log(migrationName);
+  
+  const dbClasses = require(configurationLocation).dbClasses;
+  console.log(dbClasses);
 }
 
 function getDateFormat() {
