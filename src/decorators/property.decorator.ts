@@ -17,8 +17,8 @@ export function column(databaseColumnName: string) {
   return Reflect.metadata(nameMetaDatakey, databaseColumnName);
 }
 
-export function type(type: propertyType) {
-  return Reflect.metadata(typeMetaDatakey, type);
+export function type(type: propertyType, length: number | null = null, subLength: number | null = null) {
+  return Reflect.metadata(typeMetaDatakey, JSON.stringify({type, length, subLength}));
 }
 
 export function primary() {
@@ -49,6 +49,9 @@ export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignK
   return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table, column, onDelete, onUpdate}));
 }
 
+/**
+ * Options for a foreign key connection
+ */
 export enum ForeignKeyOption {
   Restrict = 0,
   Cascade = 1,
@@ -88,8 +91,31 @@ export function getType<T>(sourceObject: Object, propertyKey: keyof T): property
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
+    const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
+    return JSON.parse(stringifiedValue).type;
   } catch (ex) {
     return 'string';
+  }
+}
+
+export function getPrimary<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(primaryMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return false;
+  }
+}
+
+export function getNullable<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(nullableMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return true;
   }
 }
