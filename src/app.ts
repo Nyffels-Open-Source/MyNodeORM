@@ -1,6 +1,9 @@
 #! /usr/bin/env node
 import path from "node:path";
 import * as fs from "node:fs";
+import {getAllProperties, getColumn, getTable, getType} from "./decorators";
+import {Schema} from "./models/schema.models";
+import {mkdirSync} from "fs";
 
 
 const args = process.argv.slice(2);
@@ -9,7 +12,7 @@ if (args.some(e => /^--workdir=*./.test(e))) {
   workdir = args.find(a => a.includes("--workdir="))
     ?.replace("--workdir=", "") ?? "";
 }
-console.log(`Working from ${workdir}.`);
+console.log(`• Working from ${workdir}.`);
 
 if (args.includes("--create-config-mysql")) {
   const fileLocationRaw = args.find(a => a.includes('--location='));
@@ -29,7 +32,7 @@ if (args.includes("--create-config-mysql")) {
 
   const fullPathWithFile = path.join(fullPath, "mynodeorm-mysql-config.json");
   if (fs.existsSync(fullPathWithFile)) {
-    console.log(`MySql config file already exists. Delete existing one...`);
+    console.log(`• MySql config file already exists. Delete existing one...`);
     fs.unlinkSync(fullPathWithFile);
   }
 
@@ -43,11 +46,11 @@ if (args.includes("--create-config-mysql")) {
     }
   }
   fs.writeFileSync(fullPathWithFile, JSON.stringify(config), {encoding: "utf8"});
-  console.log("MySQL config file created and saved at " + fullPathWithFile + ".");
+  console.log("• MySQL config file created and saved at " + fullPathWithFile + ".");
 
   const schemaScriptPath = path.join(fullPath, "mynodeorm-migration-config.ts");
   if (fs.existsSync(schemaScriptPath)) {
-    console.log(`Schema config file already exists. Delete existing one...`);
+    console.log(`• Schema config file already exists. Delete existing one...`);
     fs.unlinkSync(schemaScriptPath);
   }
 
@@ -55,11 +58,10 @@ if (args.includes("--create-config-mysql")) {
     export const dbClasses = [];
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
-  console.log("Schema config file created and saved at " + fullPathWithFile + ".");
-} 
-else if (args.includes("--migration")) {
+  console.log("• Schema config file created and saved at " + fullPathWithFile + ".");
+} else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
-    throw Error("Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
+    throw Error("• Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
   }
 
   const name = args.find((a) => a.includes('--name='))
@@ -74,14 +76,14 @@ else if (args.includes("--migration")) {
   const configurationLocation = path.join(process.cwd(), configurationLocationPath, "mynodeorm-migration-config.ts");
 
   if (!fs.existsSync(configurationLocation)) {
-    console.log(`Configuration not found on location ${configurationLocation}`);
+    console.log(`• Configuration not found on location ${configurationLocation}`);
     process.exit(1);
   }
 
   let firstMigration = false;
   if (!fs.existsSync(migrationLocation)) {
     firstMigration = true;
-    console.log("Migration location does not exists... Creating folder.");
+    console.log("• Migration location does not exists... Creating folder.");
     fs.mkdirSync(migrationLocation, {recursive: true});
   }
 
@@ -90,10 +92,39 @@ else if (args.includes("--migration")) {
 
   const dbClasses = require(configurationLocation).dbClasses;
 
-  console.log(dbClasses);
-}
-else {
-  console.log("No valid action found!");
+  console.log("• Creating schema...");
+  const schema: Schema = {};
+  for (const dbClass of dbClasses) {
+    const table = getTable(dbClass);
+    if (!table) { continue; }
+    
+    schema[table] = {
+      columns: {}
+    };
+    
+    const properties = getAllProperties(dbClass);
+    for (let property of properties) {
+      const columnname = getColumn(dbClass, property);
+      
+      schema[table].columns[columnname] = {
+        type: "", // TODO
+        primary: false, // TODO
+        nullable: false, // TODO
+        unique: false, // TODO
+        unsigned: false, // TODO
+        autoIncrement: false, // TODO
+        defaultSql: null, // TODO
+        foreignKey: null // TODO
+      };
+    }
+  }
+  
+  console.log("• Schema created.");
+  
+  mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
+  fs.writeFileSync(path.join(migrationLocation, migrationName, "schema.json"), JSON.stringify(schema));
+} else {
+  console.log("• No valid action found!");
 }
 
 function getDateFormat() {

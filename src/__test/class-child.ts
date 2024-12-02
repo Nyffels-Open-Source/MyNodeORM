@@ -1,7 +1,7 @@
 import {column, foreignKey, ForeignKeyOption, nullable, primary, table, unique, unsigned} from "../decorators";
 import {Test1} from "./class-parent";
 
-@table("test_par")
+@table("test_par_child")
 export class TestChild {
   @column("test_par_child_guid")
   @primary()
