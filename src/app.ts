@@ -45,14 +45,14 @@ if (args.includes("--create-config-mysql")) {
   fs.writeFileSync(fullPathWithFile, JSON.stringify(config), {encoding: "utf8"});
   console.log("MySQL config file created and saved at " + fullPathWithFile + ".");
 
-  const schemaScriptPath = path.join(fullPath, "mynodeorm-migration-config.js");
+  const schemaScriptPath = path.join(fullPath, "mynodeorm-migration-config.ts");
   if (fs.existsSync(schemaScriptPath)) {
     console.log(`Schema config file already exists. Delete existing one...`);
     fs.unlinkSync(schemaScriptPath);
   }
 
   let migrationsScript = `
-    const dbClasses = [];
+    export const dbClasses = [];
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
   console.log("Schema config file created and saved at " + fullPathWithFile + ".");
@@ -71,7 +71,7 @@ else if (args.includes("--migration")) {
 
   const configurationLocationPath = args.find((a) => a.includes('--config-location='))
     ?.replace('--config-location=', '') ?? "./";
-  const configurationLocation = path.join(process.cwd(), configurationLocationPath, "mynodeorm-migration-config.js");
+  const configurationLocation = path.join(process.cwd(), configurationLocationPath, "mynodeorm-migration-config.ts");
 
   if (!fs.existsSync(configurationLocation)) {
     console.log(`Configuration not found on location ${configurationLocation}`);
@@ -89,6 +89,7 @@ else if (args.includes("--migration")) {
   const migrationName = getDateFormat() + (version > 0 ? (`.${version}`) : "") + "_" + name;
 
   const dbClasses = require(configurationLocation).dbClasses;
+
   console.log(dbClasses);
 }
 else {
