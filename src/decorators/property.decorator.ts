@@ -97,6 +97,18 @@ export function getType<T>(sourceObject: Object, propertyKey: keyof T): property
   }
 }
 
+export function getTypeLength<T>(sourceObject: Object, propertyKey: keyof T): string | null {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
+    return JSON.parse(stringifiedValue).length;
+  } catch (ex) {
+    return null;
+  }
+}
+
 export function getPrimary<T>(sourceObject: Object, propertyKey: keyof T): boolean {
   try {
     const factory = new Factory();

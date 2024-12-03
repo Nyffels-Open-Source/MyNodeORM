@@ -108,7 +108,21 @@ if (args.includes("--create-config-mysql")) {
       
       let columnType = getType(dbClass, property) ?? "string";
       switch (columnType) {
-        // TODO
+        case "number": {
+          break;
+        }
+        case "boolean": {
+          break;
+        }
+        case "date": {
+          break;
+        }
+        case "datetime": {
+          break;
+        }
+        case "string": {
+          break;
+        }
       }
       
       schema[table].columns[columnname] = {
