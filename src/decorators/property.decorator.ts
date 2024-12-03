@@ -16,7 +16,7 @@ export function column(databaseColumnName: string) {
   return Reflect.metadata(nameMetaDatakey, databaseColumnName);
 }
 
-export function type(type: propertyType, length: string) {
+export function type(type: propertyType, length: string | null = null) {
   return Reflect.metadata(typeMetaDatakey, JSON.stringify({type, length}));
 }
 
@@ -24,7 +24,7 @@ export function primary() {
   return Reflect.metadata(primaryMetaDatakey, true);
 }
 
-export function nullable(isNullable: boolean) {
+export function nullable(isNullable: boolean = true) {
   return Reflect.metadata(nullableMetaDatakey, isNullable);
 }
 
