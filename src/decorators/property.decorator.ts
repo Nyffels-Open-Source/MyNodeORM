@@ -152,13 +152,13 @@ export function getAutoIncrement<T>(sourceObject: Object, propertyKey: keyof T):
   }
 }
 
-export function getDefaultSql<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+export function getDefaultSql<T>(sourceObject: Object, propertyKey: keyof T): string | null {
   try {
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
     return Reflect.getMetadata(defaultMetaDatakey, (targetClass as any), propertyKey as string);
   } catch (ex) {
-    return true;
+    return null;
   }
 }

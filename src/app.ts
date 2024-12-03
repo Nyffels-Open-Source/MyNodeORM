@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 import path from "node:path";
 import * as fs from "node:fs";
-import {getAllProperties, getColumn, getTable, getType} from "./decorators";
+import {getAllProperties, getAutoIncrement, getColumn, getDefaultSql, getNullable, getPrimary, getTable, getType, getUnique, getUnsigned} from "./decorators";
 import {Schema} from "./models/schema.models";
 import {mkdirSync} from "fs";
 
@@ -106,14 +106,19 @@ if (args.includes("--create-config-mysql")) {
     for (let property of properties) {
       const columnname = getColumn(dbClass, property);
       
+      let columnType = getType(dbClass, property) ?? "string";
+      switch (columnType) {
+        // TODO
+      }
+      
       schema[table].columns[columnname] = {
         type: "", // TODO
-        primary: false, // TODO
-        nullable: false, // TODO
-        unique: false, // TODO
-        unsigned: false, // TODO
-        autoIncrement: false, // TODO
-        defaultSql: null, // TODO
+        primary: getPrimary(dbClass, property),
+        nullable: getNullable(dbClass, property),
+        unique: getUnique(dbClass, property),
+        unsigned: getUnsigned(dbClass, property),
+        autoIncrement: getAutoIncrement(dbClass, property),
+        defaultSql: getDefaultSql(dbClass, property) ?? "",
         foreignKey: null // TODO
       };
     }
