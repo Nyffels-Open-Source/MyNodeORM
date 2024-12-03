@@ -7,7 +7,6 @@ const typeMetaDatakey = Symbol('type');
 const primaryMetaDatakey = Symbol('primary');
 const nullableMetaDatakey = Symbol('nullable');
 const uniqueMetaDatakey = Symbol('unique');
-const indexMetaDatakey = Symbol('index');
 const unsignedMetaDatakey = Symbol('unsigned');
 const autoIncrementMetaDatakey = Symbol('autoIncrement');
 const defaultMetaDatakey = Symbol('default');
@@ -17,8 +16,8 @@ export function column(databaseColumnName: string) {
   return Reflect.metadata(nameMetaDatakey, databaseColumnName);
 }
 
-export function type(type: propertyType, length: number | null = null, subLength: number | null = null) {
-  return Reflect.metadata(typeMetaDatakey, JSON.stringify({type, length, subLength}));
+export function type(type: propertyType, length: string) {
+  return Reflect.metadata(typeMetaDatakey, JSON.stringify({type, length}));
 }
 
 export function primary() {
@@ -115,6 +114,50 @@ export function getNullable<T>(sourceObject: Object, propertyKey: keyof T): bool
     const targetClass = factory.create<T>(sourceObject as any);
 
     return Reflect.getMetadata(nullableMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return true;
+  }
+}
+
+export function getUnique<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(uniqueMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return true;
+  }
+}
+
+export function getUnsigned<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(unsignedMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return true;
+  }
+}
+
+export function getAutoIncrement<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+  } catch (ex) {
+    return true;
+  }
+}
+
+export function getDefaultSql<T>(sourceObject: Object, propertyKey: keyof T): boolean {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    return Reflect.getMetadata(defaultMetaDatakey, (targetClass as any), propertyKey as string);
   } catch (ex) {
     return true;
   }
