@@ -16,6 +16,7 @@ import {
 } from "./decorators";
 import {Schema} from "./models/schema.models";
 import {mkdirSync} from "fs";
+import {MigrationFileBuilder} from "./models/migration.models";
 
 
 const args = process.argv.slice(2);
@@ -100,6 +101,11 @@ if (args.includes("--create-config-mysql")) {
     fs.mkdirSync(migrationLocation, {recursive: true});
   }
 
+  if (!firstMigration) {
+    const folders = fs.readdirSync(migrationLocation);
+    firstMigration = folders.length == 0;
+  }
+
   const version = 10;
   const migrationName = getDateFormat() + (version > 0 ? (`.${version}`) : "") + "_" + name;
 
@@ -130,19 +136,34 @@ if (args.includes("--create-config-mysql")) {
     }
   }
   
-  console.log("• Schema created.");
-  
   mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
   fs.writeFileSync(path.join(migrationLocation, migrationName, "schema.json"), JSON.stringify(schema));
 
-  console.log("• Schema saved.");
+  console.log("• Schema created.");
 
   if (firstMigration) {
-   // TODO Create a migration file based on full schema.
+    console.log("• Creating migration file...");
+    let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
+
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", "// This is the first migration. To undo this, delete your database!");
+
+    let uplogic = ''; // TODO Create up logic
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
+
+    fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
+    console.log("• Migration file created.");
   } else {
-    // TODO fetch previous schema.
-    // TODO compare current schema with previous schema.
-    // TODO create a migration file with changes.
+    console.log("• Creating migration file...");
+    let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
+
+    let downlogic = ''; // TODO Create up logic
+    let uplogic = ''; // TODO Create up logic
+
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downlogic);
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
+
+    fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
+    console.log("• Migration file created.");
   }
 
   console.log("✅  Migration completed.");
