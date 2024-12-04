@@ -133,11 +133,17 @@ if (args.includes("--create-config-mysql")) {
   console.log("• Schema created.");
   
   mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
-  const schemaLocation = path.join(migrationLocation, "schema.json");
-  if (fs.existsSync(schemaLocation)) {
-    fs.unlinkSync(schemaLocation);
+  fs.writeFileSync(path.join(migrationLocation, migrationName, "schema.json"), JSON.stringify(schema));
+
+  console.log("• Schema saved.");
+
+  if (firstMigration) {
+   // TODO Create a migration file based on full schema.
+  } else {
+    // TODO fetch previous schema.
+    // TODO compare current schema with previous schema.
+    // TODO create a migration file with changes.
   }
-  fs.writeFileSync(schemaLocation, JSON.stringify(schema));
 
   console.log("✅  Migration completed.");
 } else {
