@@ -3,7 +3,7 @@ import mysql from "mysql2/promise";
 /**
  * All the possible types of a property used for parsing.
  */
-export type propertyType = 'number' | 'boolean' | 'date'| 'datetime' | 'string' | 'bigstring' | 'guid';
+export type propertyType = 'number' | 'bignumber' | 'boolean' | 'date'| 'time' | 'datetime' | 'string' | 'bigstring' | 'guid';
 
 /**
  * The wrapper element to declare a system value. ex: NOW()
@@ -23,8 +23,8 @@ export class DatabaseSystemValue {
         this._value = rawQuery;
     }
 
-    constructor(mySQL: MySQL | string) {
-        if (mySQL === MySQL.RAW) {
+    constructor(mySQL: MySQLValue | string) {
+        if (mySQL === MySQLValue.RAW) {
             this.isRaw = true;
         }
 
@@ -32,16 +32,18 @@ export class DatabaseSystemValue {
     }
 
     public static Raw(rawQuery: string) {
-        const dbSystemValue = new DatabaseSystemValue(MySQL.RAW);
+        const dbSystemValue = new DatabaseSystemValue(MySQLValue.RAW);
         dbSystemValue.value = rawQuery;
         return dbSystemValue;
     }
 }
 
-/**
- * An enum with all the possible system values known to the package.
- */
-export enum MySQL {
-    NOW = "NOW()",
-    RAW = "THIS IS A RAW VALUE"
+export abstract class MySQLValue {
+    static get RAW() {
+        return "THIS IS A RAW SQL VALUE";
+    }
+
+    static get NOW() {
+        return "NOW()";
+    }
 }

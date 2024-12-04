@@ -1,4 +1,5 @@
-import {column, nullable, primary, table, type, unique, unsigned} from "../decorators";
+import {column, defaultSql, nullable, primary, table, type, unique, unsigned} from "../decorators";
+import {MySQLValue} from "../models";
 
 @table("test_par")
 export class Test1 {
@@ -12,4 +13,13 @@ export class Test1 {
 
   @column("test_par_name")
   public name: string = "";
+
+  @column("test_par_date")
+  @type("date")
+  public date: Date = new Date();
+
+  @column("test_par_child_guid")
+  @type("datetime")
+  @defaultSql(MySQLValue.NOW)
+  public created: Date = new Date();
 }
