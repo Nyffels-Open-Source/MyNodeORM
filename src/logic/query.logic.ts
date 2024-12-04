@@ -35,6 +35,7 @@ export function queryResultToObject<T = any>(classObject: Object, results: any[]
                         break;
                     }
                     case 'date':
+                    case 'time':
                     case 'datetime': {
                         resultObject[p] = !_.isNil(r[column]) ? new Date(r[column]) : null;
                         break;

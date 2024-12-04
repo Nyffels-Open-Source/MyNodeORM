@@ -117,28 +117,7 @@ if (args.includes("--create-config-mysql")) {
     
     const properties = getAllProperties(dbClass);
     for (let property of properties) {
-      const columnname = getColumn(dbClass, property);
-      
-      let columnType = getType(dbClass, property) ?? "string";
-      switch (columnType) {
-        case "number": {
-          break;
-        }
-        case "boolean": {
-          break;
-        }
-        case "date": {
-          break;
-        }
-        case "datetime": {
-          break;
-        }
-        case "string": {
-          break;
-        }
-      }
-      
-      schema[table].columns[columnname] = {
+      schema[table].columns[getColumn(dbClass, property)] = {
         type: getSqlType(dbClass, property),
         primary: getPrimary(dbClass, property),
         nullable: getNullable(dbClass, property),

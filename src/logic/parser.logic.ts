@@ -58,6 +58,7 @@ export function parseValue(sourceClass: any, property: string, value: any) {
             return parseBoolean(value);
         case 'date':
             return parseDate(value, false);
+        case 'time':
         case 'datetime':
             return parseDate(value, true);
         default:

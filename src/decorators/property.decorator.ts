@@ -49,9 +49,6 @@ export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignK
   return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table, column, onDelete, onUpdate}));
 }
 
-/**
- * Options for a foreign key connection
- */
 export enum ForeignKeyOption {
   Restrict = 0,
   Cascade = 1,
@@ -59,9 +56,6 @@ export enum ForeignKeyOption {
   NoAction = 3
 }
 
-/**
- * Get a sql column from a property. If no column decorator found, it will return the propertykey.
- */
 export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
   try {
     const factory = new Factory();
@@ -73,9 +67,6 @@ export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
   }
 }
 
-/**
- * Get all the properties of a object.
- */
 export function getAllProperties<T>(object: Object) {
   const factory = new Factory();
   const targetClass = factory.create<T>(object as any);
@@ -83,9 +74,6 @@ export function getAllProperties<T>(object: Object) {
   return Object.keys(targetClass as any) as (keyof T)[];
 }
 
-/**
- * Get the column type from a property. If no type decorator found, it will return 'string'.
- */
 export function getType<T>(sourceObject: Object, propertyKey: keyof T): propertyType {
   try {
     const factory = new Factory();
@@ -127,7 +115,7 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
           process.exit(1);
         }
 
-        if (strLength > 65535) {
+        if (strLength > 65500) {
           return "LONGTEXT";
         } else {
           return `VARCHAR(${strLength})`;
@@ -140,16 +128,74 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
         return "VARCHAR(36)";
       }
       case "number": {
-        return ""; // TODO
+        const lengths = (length ?? "255").split('.');
+        if (lengths.length > 1) {
+          // DECIMAL
+
+          const intLength = +lengths[0];
+          const decimalLength = +lengths[1];
+
+          if (Number.isNaN(intLength)) {
+            console.error(`❌ Could not parse type length (size) in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+            process.exit(1);
+          }
+
+          if (intLength <= 0) {
+            console.error(`❌ Length cannot be lesser than 1 for type number (size) in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`)
+            process.exit(1);
+          }
+
+          if (intLength > 65) {
+            console.error(`❌ Maximum length for type number (size) is 65 in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+            process.exit(1);
+          }
+
+          if (Number.isNaN(decimalLength)) {
+            console.error(`❌ Could not parse type length (decimal) in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+            process.exit(1);
+          }
+
+          if (decimalLength <= 0) {
+            console.error(`❌ Length cannot be lesser than 1 for type number (decimal) in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`)
+            process.exit(1);
+          }
+
+          if (decimalLength > 30) {
+            console.error(`❌ Maximum length for type number (decimal) is 30 in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+            process.exit(1);
+          }
+
+          return `DECIMAL(${intLength}, ${decimalLength})`;
+        } else {
+          const intLength = +lengths[0];
+
+          if (Number.isNaN(intLength)) {
+            console.error(`❌ Could not parse type length in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+            process.exit(1);
+          }
+
+          if (intLength <= 0) {
+            console.error(`❌ Length cannot be lesser than 1 for type number in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`)
+            process.exit(1);
+          }
+
+          return `INT(${intLength})`;
+        }
+      }
+      case "bignumber": {
+        return "BIGINT";
       }
       case "boolean": {
-        return ""; // TODO
+        return "TINYINT(1)";
       }
       case "date": {
-        return ""; // TODO
+        return "DATE";
+      }
+      case "time": {
+        return "TIME";
       }
       case "datetime": {
-        return ""; // TODO
+        return "DATETIME";
       }
       default: {
         console.error(`❌ MyNodeORM type '${type}' given in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}' is not known to MyNodeORM.'`);
