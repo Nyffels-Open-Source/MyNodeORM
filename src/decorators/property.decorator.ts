@@ -97,6 +97,28 @@ export function getType<T>(sourceObject: Object, propertyKey: keyof T): property
   }
 }
 
+export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): string {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
+    const type = JSON.parse(stringifiedValue).type;
+    const length = JSON.parse(stringifiedValue).length;
+
+    // TODO Map type to correct SQL type
+    switch (type) {
+      default: {
+        throw new Error(`MyNodeORM type '${type}' given in property '${propertyKey.toString()}' in class '${sourceObject.toString()}' is not known to MyNodeORM.'`);
+      }
+    }
+
+    return ""; // TODO
+  } catch (ex) {
+    return "VARCHAR(255)"; // Default to VARCHAR max length
+  }
+}
+
 export function getTypeLength<T>(sourceObject: Object, propertyKey: keyof T): string | null {
   try {
     const factory = new Factory();

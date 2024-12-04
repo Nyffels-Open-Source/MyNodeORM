@@ -1,7 +1,19 @@
 #! /usr/bin/env node
 import path from "node:path";
 import * as fs from "node:fs";
-import {getAllProperties, getAutoIncrement, getColumn, getDefaultSql, getNullable, getPrimary, getTable, getType, getUnique, getUnsigned} from "./decorators";
+import {
+  getAllProperties,
+  getAutoIncrement,
+  getColumn,
+  getDefaultSql,
+  getNullable,
+  getPrimary,
+  getSqlType,
+  getTable,
+  getType,
+  getUnique,
+  getUnsigned
+} from "./decorators";
 import {Schema} from "./models/schema.models";
 import {mkdirSync} from "fs";
 
@@ -58,10 +70,11 @@ if (args.includes("--create-config-mysql")) {
     export const dbClasses = [];
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
-  console.log("• Schema config file created and saved at " + fullPathWithFile + ".");
+  console.log("✔ Schema config file created and saved at " + fullPathWithFile + ".");
 } else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
-    throw Error("• Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
+    console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
+    process.exit(1);
   }
 
   const name = args.find((a) => a.includes('--name='))
@@ -76,7 +89,7 @@ if (args.includes("--create-config-mysql")) {
   const configurationLocation = path.join(process.cwd(), configurationLocationPath, "mynodeorm-migration-config.ts");
 
   if (!fs.existsSync(configurationLocation)) {
-    console.log(`• Configuration not found on location ${configurationLocation}`);
+    console.error(`❌ Configuration not found on location ${configurationLocation}`);
     process.exit(1);
   }
 
@@ -126,13 +139,13 @@ if (args.includes("--create-config-mysql")) {
       }
       
       schema[table].columns[columnname] = {
-        type: "", // TODO
+        type: getSqlType(dbClass, property),
         primary: getPrimary(dbClass, property),
         nullable: getNullable(dbClass, property),
         unique: getUnique(dbClass, property),
         unsigned: getUnsigned(dbClass, property),
         autoIncrement: getAutoIncrement(dbClass, property),
-        defaultSql: getDefaultSql(dbClass, property) ?? "",
+        defaultSql: getDefaultSql(dbClass, property) ?? null,
         foreignKey: null // TODO
       };
     }
@@ -141,9 +154,16 @@ if (args.includes("--create-config-mysql")) {
   console.log("• Schema created.");
   
   mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
-  fs.writeFileSync(path.join(migrationLocation, migrationName, "schema.json"), JSON.stringify(schema));
+  const schemaLocation = path.join(migrationLocation, "schema.json");
+  if (fs.existsSync(schemaLocation)) {
+    fs.unlinkSync(schemaLocation);
+  }
+  fs.writeFileSync(schemaLocation, JSON.stringify(schema));
+
+  console.log("✔ Migration completed.");
 } else {
-  console.log("• No valid action found!");
+  console.error("❌ No valid action found!");
+  process.exit(1);
 }
 
 function getDateFormat() {
