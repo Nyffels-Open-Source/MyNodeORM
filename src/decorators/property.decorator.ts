@@ -136,6 +136,9 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
       case "bigstring": {
         return "LONGTEXT";
       }
+      case "guid": {
+        return "VARCHAR(36)";
+      }
       case "number": {
         return ""; // TODO
       }

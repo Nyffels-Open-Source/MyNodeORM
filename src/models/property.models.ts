@@ -3,7 +3,7 @@ import mysql from "mysql2/promise";
 /**
  * All the possible types of a property used for parsing.
  */
-export type propertyType = 'number' | 'boolean' | 'date'| 'datetime' | 'string' | 'bigstring';
+export type propertyType = 'number' | 'boolean' | 'date'| 'datetime' | 'string' | 'bigstring' | 'guid';
 
 /**
  * The wrapper element to declare a system value. ex: NOW()

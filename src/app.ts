@@ -160,7 +160,7 @@ if (args.includes("--create-config-mysql")) {
   }
   fs.writeFileSync(schemaLocation, JSON.stringify(schema));
 
-  console.log("✅ Migration completed.");
+  console.log("✅  Migration completed.");
 } else {
   console.error("❌ No valid action found!");
   process.exit(1);

@@ -1,4 +1,4 @@
-import {column, nullable, primary, table, unique, unsigned} from "../decorators";
+import {column, nullable, primary, table, type, unique, unsigned} from "../decorators";
 
 @table("test_par")
 export class Test1 {
@@ -7,6 +7,7 @@ export class Test1 {
   @unique()
   @nullable(false)
   @unsigned()
+  @type("guid")
   public guid: string = "";
 
   @column("test_par_name")
