@@ -70,7 +70,7 @@ export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
 export function getAllProperties<T>(object: Object) {
   const factory = new Factory();
   const targetClass = factory.create<T>(object as any);
-
+  
   return Object.keys(targetClass as any) as (keyof T)[];
 }
 

@@ -43,12 +43,19 @@ export class MigrationBuilder {
         return table;
     }
     
+    public dropTable(name: string) {
+        // TODO
+        return;
+    }
+    
     public doRawQuery(query: string) {
         // TODO
+        return;
     }
     
     public execute() {
         // TODO
+        return;
     }
 }
 

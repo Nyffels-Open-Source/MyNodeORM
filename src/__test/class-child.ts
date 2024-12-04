@@ -7,7 +7,6 @@ export class TestChild {
   @primary()
   @unique()
   @required()
-  @unsigned()
   @type("guid")
   public guid: string = "";
 
@@ -26,6 +25,5 @@ export class TestChild {
 
   @column("test_par_child_microid")
   @type("number", "10")
-  @unsigned()
   public mId: number = 0;
 }
