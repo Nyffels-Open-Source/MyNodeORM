@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import {propertyType} from "../models/property.models";
 import {Factory} from "../models/factory.models";
+import {parseNumber} from "../logic";
 
 const nameMetaDatakey = Symbol('name');
 const typeMetaDatakey = Symbol('type');
@@ -103,17 +104,55 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
     const targetClass = factory.create<T>(sourceObject as any);
 
     const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
-    const type = JSON.parse(stringifiedValue).type;
-    const length = JSON.parse(stringifiedValue).length;
-
-    // TODO Map type to correct SQL type
-    switch (type) {
-      default: {
-        throw new Error(`MyNodeORM type '${type}' given in property '${propertyKey.toString()}' in class '${sourceObject.toString()}' is not known to MyNodeORM.'`);
-      }
+    let type: propertyType;
+    let length  = "";
+    if (stringifiedValue == undefined) {
+      type = "string";
+      length = "255";
+    } else {
+      type = JSON.parse(stringifiedValue).type;
+      length = JSON.parse(stringifiedValue).length;
     }
 
-    return ""; // TODO
+    switch (type) {
+      case "string": {
+        const strLength = +(length ?? "255");
+        if (Number.isNaN(strLength)) {
+          console.error(`❌ Could not parse type length in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`);
+          process.exit(1);
+        }
+
+        if (strLength <= 0) {
+          console.error(`❌ Length cannot be lesser than 1 for type string in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}'.`)
+          process.exit(1);
+        }
+
+        if (strLength > 65535) {
+          return "LONGTEXT";
+        } else {
+          return `VARCHAR(${strLength})`;
+        }
+      }
+      case "bigstring": {
+        return "LONGTEXT";
+      }
+      case "number": {
+        return ""; // TODO
+      }
+      case "boolean": {
+        return ""; // TODO
+      }
+      case "date": {
+        return ""; // TODO
+      }
+      case "datetime": {
+        return ""; // TODO
+      }
+      default: {
+        console.error(`❌ MyNodeORM type '${type}' given in property '${propertyKey.toString()}' in class '${(targetClass as any).constructor.name}' is not known to MyNodeORM.'`);
+        process.exit(1);
+      }
+    }
   } catch (ex) {
     return "VARCHAR(255)"; // Default to VARCHAR max length
   }
