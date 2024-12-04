@@ -47,7 +47,8 @@ if (args.includes("--create-config-mysql")) {
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
   console.log("✅ Schema config file created and saved at " + schemaScriptPath + ".");
-} else if (args.includes("--migration")) {
+} 
+else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
     console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
     process.exit(1);
@@ -298,7 +299,17 @@ if (args.includes("--create-config-mysql")) {
   }
 
   console.log("✅  Migration completed.");
-} else {
+} 
+else if (args.includes("--upgrade")) {
+  // TODO Upgrade database to latest or given migration
+}
+else if (args.includes("--downgrade")) {
+  // TODO Downgrade one migration
+}
+else if (args.includes("--rebase")) {
+  // TODO Implement an existing database to the migeration flows latest migration. 
+}
+else {
   console.error("❌ No valid action found!");
   process.exit(1);
 }
