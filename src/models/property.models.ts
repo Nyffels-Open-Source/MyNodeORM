@@ -1,5 +1,3 @@
-import mysql from "mysql2/promise";
-
 /**
  * All the possible types of a property used for parsing.
  */

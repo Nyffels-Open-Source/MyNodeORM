@@ -25,8 +25,8 @@ export function primary() {
   return Reflect.metadata(primaryMetaDatakey, true);
 }
 
-export function nullable(isNullable: boolean = true) {
-  return Reflect.metadata(nullableMetaDatakey, isNullable);
+export function required() {
+  return Reflect.metadata(nullableMetaDatakey, false);
 }
 
 export function unique() {
@@ -93,7 +93,7 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
 
     const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
     let type: propertyType;
-    let length  = "";
+    let length = "";
     if (stringifiedValue == undefined) {
       type = "string";
       length = "255";
@@ -207,24 +207,12 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
   }
 }
 
-export function getTypeLength<T>(sourceObject: Object, propertyKey: keyof T): string | null {
-  try {
-    const factory = new Factory();
-    const targetClass = factory.create<T>(sourceObject as any);
-
-    const stringifiedValue = Reflect.getMetadata(typeMetaDatakey, (targetClass as any), propertyKey as string);
-    return JSON.parse(stringifiedValue).length;
-  } catch (ex) {
-    return null;
-  }
-}
-
 export function getPrimary<T>(sourceObject: Object, propertyKey: keyof T): boolean {
   try {
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
-
-    return Reflect.getMetadata(primaryMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+    
+    return Reflect.getMetadata(primaryMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return false;
   }
@@ -235,7 +223,7 @@ export function getNullable<T>(sourceObject: Object, propertyKey: keyof T): bool
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(nullableMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+    return Reflect.getMetadata(nullableMetaDatakey, (targetClass as any), propertyKey as string) ?? true;
   } catch (ex) {
     return true;
   }
@@ -246,7 +234,7 @@ export function getUnique<T>(sourceObject: Object, propertyKey: keyof T): boolea
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(uniqueMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+    return Reflect.getMetadata(uniqueMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return true;
   }
@@ -257,7 +245,7 @@ export function getUnsigned<T>(sourceObject: Object, propertyKey: keyof T): bool
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(unsignedMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+    return Reflect.getMetadata(unsignedMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return true;
   }
@@ -267,8 +255,8 @@ export function getAutoIncrement<T>(sourceObject: Object, propertyKey: keyof T):
   try {
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
-
-    return Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string).toLowerCase() == "true";
+    
+    return Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return true;
   }
@@ -279,7 +267,7 @@ export function getDefaultSql<T>(sourceObject: Object, propertyKey: keyof T): st
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    return Reflect.getMetadata(defaultMetaDatakey, (targetClass as any), propertyKey as string);
+    return Reflect.getMetadata(defaultMetaDatakey, (targetClass as any), propertyKey as string) ?? null;
   } catch (ex) {
     return null;
   }

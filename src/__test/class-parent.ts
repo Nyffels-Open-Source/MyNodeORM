@@ -1,4 +1,4 @@
-import {column, defaultSql, nullable, primary, table, type, unique, unsigned} from "../decorators";
+import {column, defaultSql, required, primary, table, type, unique, unsigned} from "../decorators";
 import {MySQLValue} from "../models";
 
 @table("test_par")
@@ -6,8 +6,7 @@ export class Test1 {
   @column("test_par_guid")
   @primary()
   @unique()
-  @nullable(false)
-  @unsigned()
+  @required()
   @type("guid")
   public guid: string = "";
 

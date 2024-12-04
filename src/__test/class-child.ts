@@ -1,4 +1,4 @@
-import {column, foreignKey, ForeignKeyOption, nullable, primary, table, type, unique, unsigned} from "../decorators";
+import {column, foreignKey, ForeignKeyOption, primary, required, table, type, unique, unsigned} from "../decorators";
 import {Test1} from "./class-parent";
 
 @table("test_par_child")
@@ -6,7 +6,7 @@ export class TestChild {
   @column("test_par_child_guid")
   @primary()
   @unique()
-  @nullable(false)
+  @required()
   @unsigned()
   @type("guid")
   public guid: string = "";
@@ -26,5 +26,6 @@ export class TestChild {
 
   @column("test_par_child_microid")
   @type("number", "10")
+  @unsigned()
   public mId: number = 0;
 }
