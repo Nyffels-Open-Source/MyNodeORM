@@ -2,7 +2,6 @@
 import path from "node:path";
 import * as fs from "node:fs";
 import {
-  autoIncrement,
   getAllProperties,
   getAutoIncrement,
   getColumn,
@@ -29,7 +28,7 @@ if (args.some(e => /^--workdir=*./.test(e))) {
 }
 console.log(`• Working from ${workdir}.`);
 
-if (args.includes("--create-config-mysql")) {
+if (args.includes("--create-config")) {  
   const fileLocationRaw = args.find(a => a.includes('--location='));
   const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
   const fullPath = fileLocation.startsWith(".") ? path.join(workdir, fileLocation) : fileLocation;
