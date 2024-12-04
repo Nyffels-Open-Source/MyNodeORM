@@ -20,6 +20,6 @@ export class Test1 {
 
   @column("test_par_child_guid")
   @type("datetime")
-  @defaultSql(MySQLValue.NOW)
+  @defaultSql(MySQLValue.now)
   public created: Date = new Date();
 }

@@ -24,7 +24,7 @@ export class DatabaseSystemValue {
     }
 
     constructor(mySQL: MySQLValue | string) {
-        if (mySQL === MySQLValue.RAW) {
+        if (mySQL === MySQLValue.DeclareRaw) {
             this.isRaw = true;
         }
 
@@ -32,18 +32,18 @@ export class DatabaseSystemValue {
     }
 
     public static Raw(rawQuery: string) {
-        const dbSystemValue = new DatabaseSystemValue(MySQLValue.RAW);
+        const dbSystemValue = new DatabaseSystemValue(MySQLValue.DeclareRaw);
         dbSystemValue.value = rawQuery;
         return dbSystemValue;
     }
 }
 
 export abstract class MySQLValue {
-    static get RAW() {
+    static get DeclareRaw() {
         return "THIS IS A RAW SQL VALUE";
     }
 
-    static get NOW() {
+    static get now() {
         return "NOW()";
     }
 }
