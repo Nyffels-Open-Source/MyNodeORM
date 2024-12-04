@@ -16,7 +16,7 @@ import {
 } from "./decorators";
 import {Schema} from "./models/schema.models";
 import {mkdirSync} from "fs";
-import {MigrationFileBuilder} from "./models/migration.models";
+import {MigrationFileBuilder} from "./models";
 import _ from "lodash";
 
 
