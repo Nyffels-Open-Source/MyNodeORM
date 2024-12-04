@@ -75,8 +75,10 @@ if (args.includes("--create-config-mysql")) {
 
   const folders = fs.readdirSync(migrationLocation, { withFileTypes: true }).filter(f => f.isDirectory()).map(f => f.name);
   let version = 0;
+  let oldSchema: string | null = null;
   if (folders.length > 0) {
     version = folders.map(f => +f.split(".")[0]).sort().reverse()[0] + 1;
+    oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json")).toString());
   }
   const migrationName = `${version}.${getDateFormat()}_${name}`;
 
@@ -117,7 +119,7 @@ if (args.includes("--create-config-mysql")) {
     console.log("• Creating migration file...");
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
 
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", "");
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", "// First migration plan starts from empty database, down should mean destroy database. Database not empty? Use rebase function for integration of existing database to the migration flow.");
 
     let uplogic = '';
     Object.keys(schema)
@@ -166,11 +168,10 @@ if (args.includes("--create-config-mysql")) {
     console.log("• Migration file created.");
   } else {
     console.log("• Creating migration file...");
-    console.log(migrationLocation);
-    const oldSchema = fs.readFileSync(path.join(migrationLocation, "schema.json")).toString();
-    
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
 
+    console.log(oldSchema);
+    
     let downlogic = ''; // TODO Create up logic
     let uplogic = ''; // TODO Create up logic
 

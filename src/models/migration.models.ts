@@ -6,11 +6,27 @@ export class MigrationFile {
     public _builder = new MigrationBuilder();
     
     public up() {
+        /*
+            You can add custom data here to be run before the migration plan.
+        */
+    
         {{{{TEMPLATE-DATA-UP}}}}
+        
+        /*
+            You can add custom data here to be run after the migration plan.
+        */
     }
         
     public down() {
+        /*
+            You can add custom data here to be run before the migration plan.
+        */
+        
         {{{{TEMPLATE-DATA-DOWN}}}}
+        
+        /*
+            You can add custom data here to be run after the migration plan.
+        */        
     }
 }`;
     }
@@ -25,6 +41,10 @@ export class MigrationBuilder {
         const table = new MigrationTable(name);
         this._tables.push(table);
         return table;
+    }
+    
+    public doRawQuery(query: string) {
+        // TODO
     }
     
     public execute() {
