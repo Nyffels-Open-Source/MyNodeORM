@@ -70,7 +70,7 @@ if (args.includes("--create-config-mysql")) {
     export const dbClasses = [];
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
-  console.log("✔ Schema config file created and saved at " + fullPathWithFile + ".");
+  console.log("✅ Schema config file created and saved at " + fullPathWithFile + ".");
 } else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
     console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
@@ -160,7 +160,7 @@ if (args.includes("--create-config-mysql")) {
   }
   fs.writeFileSync(schemaLocation, JSON.stringify(schema));
 
-  console.log("✔ Migration completed.");
+  console.log("✅ Migration completed.");
 } else {
   console.error("❌ No valid action found!");
   process.exit(1);
