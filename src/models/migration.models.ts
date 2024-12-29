@@ -5,7 +5,7 @@ export abstract class MigrationFileBuilder {
 export class MigrationFile {
     public _builder = new MigrationBuilder();
     
-    public up() {
+    public async up() {
         /*
             You can add custom data here to be run before the migration plan.
         */
@@ -17,7 +17,7 @@ export class MigrationFile {
         */
     }
         
-    public down() {
+    public async down() {
         /*
             You can add custom data here to be run before the migration plan.
         */

@@ -163,9 +163,10 @@ else if (args.includes("--migration")) {
             }
             uplogic += `;`;
           });
-      });
 
-    uplogic += `\n\n        this._builder.execute();`;
+          uplogic += `\n\n        table_${index}.commit();`;
+      });
+    uplogic += `\n\n        await this._builder.execute();`;
 
     migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
 
