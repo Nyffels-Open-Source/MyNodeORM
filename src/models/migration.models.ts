@@ -56,6 +56,7 @@ export class MigrationBuilder {
 
     public execute() {
         // TODO execute all queries one by inside a transaction.
+        console.log(this._queries);
         return;
     }
 }
@@ -74,8 +75,25 @@ export class MigrationTable {
     public commit() {
         switch (this._options.action) {
             case "create":
-                let createQuery = `CREATE TABLE ${this._name} (`;
+                let createQuery = `CREATE TABLE \`${this._name}\` (`;
                 // TODO
+                /*
+                CREATE TABLE `doffice`.`test` (
+                  `test1` VARCHAR(36) NOT NULL,
+                  `test2` INT NOT NULL AUTO_INCREMENT,
+                  `test3` DATETIME NULL,
+                  PRIMARY KEY (`test1`),
+                  UNIQUE INDEX `test1_UNIQUE` (`test1` ASC) VISIBLE);
+                 */
+
+                for (const column of this._columns) {
+                    const values = column.getValues();
+                    let columnsSql = `\`${values.name}\` ${values.type}`;
+                    columnsSql += values.nullable ? ` NULL` : ` NOT NULL`;
+                    if ((values.defaultSql ?? '').length > 0) {
+                        columnsSql += ` DEFAULT ${values.defaultSql}`;
+                    }
+                }
                 createQuery += `);`
                 this._parent.addQuery(createQuery);
                 break;
@@ -164,6 +182,19 @@ export class MigrationColumn {
         this._defaultSql = sql;
         return this;
     };
+
+    public getValues() {
+        return {
+            name: this._name,
+            type: this._type,
+            primary: this._primary,
+            nullable: this._nullable,
+            unique: this._unique,
+            unsigned: this._unsigned,
+            autoIncrement: this._autoIncrement,
+            defaultSql: this._defaultSql,
+        }
+    }
 }
 
 export interface MigrationColumnOptions {
