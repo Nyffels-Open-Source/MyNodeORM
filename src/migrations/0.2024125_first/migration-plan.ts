@@ -1,4 +1,4 @@
-import {MigrationBuilder} from '@nyffels/mynodeorm';
+import {MigrationBuilder} from "../../models";
 
 export class MigrationFile {
     public _builder = new MigrationBuilder();
