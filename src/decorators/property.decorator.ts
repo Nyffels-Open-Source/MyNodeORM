@@ -1,7 +1,6 @@
 import 'reflect-metadata';
-import {propertyType} from "../models/property.models";
-import {Factory} from "../models/factory.models";
-import {parseNumber} from "../logic";
+import {propertyType} from "../models/property.models.js";
+import {Factory} from "../models/factory.models.js";
 
 const nameMetaDatakey = Symbol('name');
 const typeMetaDatakey = Symbol('type');
@@ -70,7 +69,7 @@ export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {
 export function getAllProperties<T>(object: Object) {
   const factory = new Factory();
   const targetClass = factory.create<T>(object as any);
-  
+
   return Object.keys(targetClass as any) as (keyof T)[];
 }
 
@@ -128,10 +127,11 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
         return "VARCHAR(36)";
       }
       case "number": {
-        const lengths = (length ?? "255").split('.');
+        const lengths = (length ?? "255").split('.') ?? [];
         if (lengths.length > 1) {
           // DECIMAL
 
+          // @ts-ignore
           const intLength = +lengths[0];
           const decimalLength = +lengths[1];
 
@@ -211,7 +211,7 @@ export function getPrimary<T>(sourceObject: Object, propertyKey: keyof T): boole
   try {
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
-    
+
     return Reflect.getMetadata(primaryMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return false;
@@ -255,7 +255,7 @@ export function getAutoIncrement<T>(sourceObject: Object, propertyKey: keyof T):
   try {
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
-    
+
     return Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string) ?? false;
   } catch (ex) {
     return true;

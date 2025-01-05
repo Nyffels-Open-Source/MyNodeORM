@@ -1,2 +1,2 @@
-export * from './class.decorator';
-export * from './property.decorator';
+export * from './class.decorator.js';
+export * from './property.decorator.js';

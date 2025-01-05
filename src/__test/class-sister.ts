@@ -1,5 +1,4 @@
-import {column, defaultSql, required, primary, table, type, unique, unsigned, autoIncrement} from "../decorators";
-import {MySQLValue} from "../models";
+import {column, defaultSql, required, primary, table, type, unique, unsigned, autoIncrement} from "../decorators/index.js";
 
 @table("test_par_sis")
 export class TestSister {

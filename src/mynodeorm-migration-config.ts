@@ -1,9 +1,8 @@
-import {TestChild} from "./__test/class-child";
-import {Test1} from "./__test/class-parent";
-import {TestSister} from "./__test/class-sister";
+import {TestChild} from "./__test/class-child.js";
+import {Test1} from "./__test/class-parent.js";
 
 export const dbClasses = [
-    Test1,
-    TestChild,
-    // TestSister
+  Test1,
+  TestChild,
+  // TestSister
 ];

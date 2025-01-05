@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {Factory} from "../models";
+import {Factory} from "../models/index.js";
 
 const tableMetaDataKey = Symbol('table');
 

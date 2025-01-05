@@ -1,3 +1,3 @@
-export * from './mysql.logic';
-export * from './parser.logic';
-export * from './query.logic';
+export * from './mysql.logic.js';
+export * from './parser.logic.js';
+export * from './query.logic.js';

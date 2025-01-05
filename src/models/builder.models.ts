@@ -1,7 +1,7 @@
-import {getAllProperties, getColumn, getObjectById, getTable} from "../decorators";
-import _ from "lodash";
-import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic";
-import {Factory} from "./factory.models";
+import {getAllProperties, getColumn, getObjectById, getTable} from "../decorators/index.js";
+import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic/index.js";
+import {Factory} from "./factory.models.js";
+import {isNil, isArray, uniq} from "lodash-es";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -65,7 +65,7 @@ export class QueryBuilder<T> {
         const column = getColumn(this._classobject, p as string);
         const table = getTable(this._classobject);
 
-        if (_.isNil(column)) {
+        if (isNil(column)) {
           return "";
         }
 
@@ -81,7 +81,7 @@ export class QueryBuilder<T> {
           const table = getTable(classobject ?? this._classobject);
           const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property);
 
-          if (_.isNil(column)) {
+          if (isNil(column)) {
             return "";
           }
 
@@ -133,13 +133,13 @@ export class QueryBuilder<T> {
   }
 
   /**
-   * Create a min select query. The result of the execute will be the minimum value of the fields you compared with type of number. The only accepted type parameter for execute function in combination with min is number. 
+   * Create a min select query. The result of the execute will be the minimum value of the fields you compared with type of number. The only accepted type parameter for execute function in combination with min is number.
    * @param field The field you wish to take the min of.
    */
   public min(field: (keyof T)) {
     this._queryType = "SELECT";
     this._selectQueryString = `MIN(${getColumn(this._classobject, field)}) as min`;
-    this._isMin = true; 
+    this._isMin = true;
     this.single();
     return this;
   }
@@ -176,7 +176,7 @@ export class QueryBuilder<T> {
   public insert(source: InsertValue<T> | InsertValue<T>[], onlyIncludeSourceProperties = true) {
     this._queryType = "INSERT";
 
-    if (!_.isArray(source)) {
+    if (!isArray(source)) {
       source = [source] as any[];
     }
 
@@ -312,7 +312,7 @@ export class QueryBuilder<T> {
    * @param direction The direction of the order (ASC / DESC)
    */
   public orderBy(properties: (keyof T) | (keyof T)[] | OrderByValue<T>) {
-    if (_.isArray(properties)) {
+    if (isArray(properties)) {
       const columns = properties.map(p => getColumn(this._classobject, p));
       this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
     } else if (typeof properties === 'object') {
@@ -320,7 +320,7 @@ export class QueryBuilder<T> {
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = (properties as any)[prop];
         let classobject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classobject;
-        if (!_.isNil(content.table)) {
+        if (!isNil(content.table)) {
           classobject = content.table;
         }
         return `${getTable(classobject as object)}.${getColumn(classobject as object, prop)} ${content.direction}`
@@ -403,14 +403,14 @@ export class QueryBuilder<T> {
         Object.keys(group.group)) {
         let content = (group.group as any)[property];
 
-        if (typeof content !== "object" || _.isArray(content) || content === null || content.constructor.name === 'DatabaseSystemValue') {
+        if (typeof content !== "object" || isArray(content) || content === null || content.constructor.name === 'DatabaseSystemValue') {
           content = {value: content};
         }
 
         let dbColumn = "";
         let dbTable = "";
         let dbClassobject;
-        if (!_.isNil(content.table)) {
+        if (!isNil(content.table)) {
           if (typeof content.table === "string") {
             content.table = getObjectById(content.table);
           }
@@ -423,8 +423,8 @@ export class QueryBuilder<T> {
           dbClassobject = this._classobject;
         }
 
-        if (_.isArray(content.value)) {
-          if (_.isNil(content.type)) {
+        if (isArray(content.value)) {
+          if (isNil(content.type)) {
             content.type = WhereCompareType.IN;
           }
 
@@ -442,7 +442,7 @@ export class QueryBuilder<T> {
             }
           }
         } else {
-          if (_.isNil(content.type)) {
+          if (isNil(content.type)) {
             content.type = WhereCompareType.EQUAL;
           }
 
@@ -453,7 +453,7 @@ export class QueryBuilder<T> {
             content.type = "IS NOT";
           }
 
-          if (!_.isNil(content.orNull) && content.orNull === true) {
+          if (!isNil(content.orNull) && content.orNull === true) {
             propertyFragments.push(`(${dbTable}.${dbColumn} ${content.type} ${parsedValue} OR ${dbTable}.${dbColumn} IS NULL)`);
           } else {
             propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parsedValue}`);
@@ -469,7 +469,7 @@ export class QueryBuilder<T> {
 
     const parentGroups: string[] = [];
     for (const parentId of
-      _.uniq(this._whereRawGroups.map(f => f.parentId))) {
+      uniq(this._whereRawGroups.map(f => f.parentId))) {
       parentGroups.push("(" + this._whereRawGroups.filter(g => g.parentId == parentId)
         .map(g => g.query)
         .join(" OR ") + ")");
@@ -487,7 +487,7 @@ export class QueryBuilder<T> {
     for (const join of
       this._joins) {
       query += ` ${join.type ?? "LEFT"} JOIN ${getTable(join.table)}`;
-      if (!_.isArray(join.on)) {
+      if (!isArray(join.on)) {
         join.on = [join.on];
       }
       if (typeof join.table === "string") {

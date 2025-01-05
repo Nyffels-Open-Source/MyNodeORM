@@ -1,4 +1,4 @@
-import {ForeignKeyOption} from "../decorators";
+import {ForeignKeyOption} from "../decorators/index.js";
 
 export interface Schema {
   [table: string]: {

@@ -1,4 +1,4 @@
-import {column, foreignKey, ForeignKeyOption, primary, required, table, type, unique, unsigned} from "../decorators";
+import {column, foreignKey, ForeignKeyOption, primary, required, table, type, unique, unsigned} from "../decorators/index.js";
 import {Test1} from "./class-parent";
 
 @table("test_par_child")

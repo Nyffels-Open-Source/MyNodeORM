@@ -1,4 +1,4 @@
-import {MigrationBuilder} from "../../models";
+import {MigrationBuilder} from "../../models/index.js";
 
 export class MigrationFile {
     public _builder = new MigrationBuilder();

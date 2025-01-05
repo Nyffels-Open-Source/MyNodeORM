@@ -1,23 +1,11 @@
 #! /usr/bin/env node
 import path from "node:path";
 import * as fs from "node:fs";
-import {
-  getAllProperties,
-  getAutoIncrement,
-  getColumn,
-  getDefaultSql,
-  getNullable,
-  getPrimary,
-  getSqlType,
-  getTable,
-  getType,
-  getUnique,
-  getUnsigned
-} from "./decorators";
-import {Schema} from "./models/schema.models";
+import {getAllProperties, getAutoIncrement, getColumn, getDefaultSql, getNullable, getPrimary, getSqlType, getTable, getType, getUnique, getUnsigned} from "./decorators/index.js";
+import {Schema} from "./models/schema.models.js";
 import {mkdirSync} from "fs";
-import {MigrationFileBuilder} from "./models";
-import _ from "lodash";
+import {MigrationFileBuilder} from "./models/index.js";
+import {isEqual} from 'lodash-es';
 
 
 const args = process.argv.slice(2);
@@ -28,7 +16,7 @@ if (args.some(e => /^--workdir=*./.test(e))) {
 }
 console.log(`• Working from ${workdir}.`);
 
-if (args.includes("--create-config")) {  
+if (args.includes("--create-config")) {
   const fileLocationRaw = args.find(a => a.includes('--location='));
   const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
   const fullPath = fileLocation.startsWith(".") ? path.join(workdir, fileLocation) : fileLocation;
@@ -46,8 +34,7 @@ if (args.includes("--create-config")) {
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
   console.log("✅ Schema config file created and saved at " + schemaScriptPath + ".");
-} 
-else if (args.includes("--migration")) {
+} else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
     console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
     process.exit(1);
@@ -79,10 +66,10 @@ else if (args.includes("--migration")) {
     .map(f => f.name);
   let version = 0;
   let oldSchema!: Schema;
-  if (folders.length > 0) {
-    version = folders.map(f => +f.split(".")[0])
+  if ((folders).length > 0) {
+    version = (folders.map(f => +f.split(".")[0])
       .sort()
-      .reverse()[0] + 1;
+      .reverse()[0]) + 1;
     oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json"))
       .toString());
   }
@@ -164,7 +151,7 @@ else if (args.includes("--migration")) {
             uplogic += `;`;
           });
 
-          uplogic += `\n\n        table_${index}.commit();`;
+        uplogic += `\n\n        table_${index}.commit();`;
       });
     uplogic += `\n\n        await this._builder.execute();`;
 
@@ -180,7 +167,7 @@ else if (args.includes("--migration")) {
     let downlogic = ''; // TODO Create up logic
     let uplogic = ''; // TODO Create up logic
 
-    if (!_.isEqual(oldSchema, schema)) {
+    if (isEqual(oldSchema, schema)) {
       const oldSchemaTables = Object.keys(oldSchema);
       const schemaTables = Object.keys(schema);
 
@@ -284,7 +271,7 @@ else if (args.includes("--migration")) {
         uplogic += `\n\n        this._builder.execute();`;
       }
       if (downlogic.trim().length > 0) {
-        downlogic += `\n\n        this._builder.execute();`; 
+        downlogic += `\n\n        this._builder.execute();`;
       }
     } else {
       console.log("⚠ Schema has no differences. Creating empty migration file...");
@@ -299,17 +286,13 @@ else if (args.includes("--migration")) {
   }
 
   console.log("✅  Migration completed.");
-} 
-else if (args.includes("--upgrade")) {
+} else if (args.includes("--upgrade")) {
   // TODO Upgrade database to latest or given migration
-}
-else if (args.includes("--downgrade")) {
+} else if (args.includes("--downgrade")) {
   // TODO Downgrade one migration
-}
-else if (args.includes("--rebase")) {
+} else if (args.includes("--rebase")) {
   // TODO Implement an existing database to the migeration flows latest migration. 
-}
-else {
+} else {
   console.error("❌ No valid action found!");
   process.exit(1);
 }
