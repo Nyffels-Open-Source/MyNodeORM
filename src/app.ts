@@ -67,6 +67,7 @@ if (args.includes("--create-config")) {
   let version = 0;
   let oldSchema!: Schema;
   if ((folders).length > 0) {
+    // @ts-ignore
     version = (folders.map(f => +f.split(".")[0])
       .sort()
       .reverse()[0]) + 1;
@@ -122,30 +123,40 @@ if (args.includes("--create-config")) {
         }
         uplogic += `const table_${index} = this._builder.addTable('${table}');\n`;
 
+        // @ts-ignore
         Object.keys(schema[table].columns)
           .forEach((column, cIndex) => {
             if (cIndex !== 0) {
               uplogic += `\n`
             }
+            // @ts-ignore
             const sColumn = schema[table].columns[column];
+            // @ts-ignore
             uplogic += `        table_${index}.addColumn('${column}', '${sColumn.type}')`;
 
+            // @ts-ignore
             if (sColumn.primary) {
               uplogic += `.primary()`;
             }
+            // @ts-ignore
             if (sColumn.nullable) {
               uplogic += `.nullable()`;
             }
+            // @ts-ignore
             if (sColumn.unique) {
               uplogic += `.unique()`;
             }
+            // @ts-ignore
             if (sColumn.unsigned) {
               uplogic += `.unsigned()`;
             }
+            // @ts-ignore
             if (sColumn.autoIncrement) {
               uplogic += `.autoIncrement()`;
             }
+            // @ts-ignore
             if ((sColumn.defaultSql ?? "").trim().length > 0) {
+              // @ts-ignore
               uplogic += `.defaultSql('${sColumn.defaultSql}')`;
             }
             uplogic += `;`;
@@ -189,30 +200,40 @@ if (args.includes("--create-config")) {
 
         uplogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
 
+        // @ts-ignore
         Object.keys(schema[table].columns)
           .forEach((column, cIndex) => {
             if (cIndex !== 0) {
               uplogic += `\n`
             }
+            // @ts-ignore
             const sColumn = schema[table].columns[column];
+            // @ts-ignore
             uplogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
 
+            // @ts-ignore
             if (sColumn.primary) {
               uplogic += `.primary()`;
             }
+            // @ts-ignore
             if (sColumn.nullable) {
               uplogic += `.nullable()`;
             }
+            // @ts-ignore
             if (sColumn.unique) {
               uplogic += `.unique()`;
             }
+            // @ts-ignore
             if (sColumn.unsigned) {
               uplogic += `.unsigned()`;
             }
+            // @ts-ignore
             if (sColumn.autoIncrement) {
               uplogic += `.autoIncrement()`;
             }
+            // @ts-ignore
             if ((sColumn.defaultSql ?? "").trim().length > 0) {
+              // @ts-ignore
               uplogic += `.defaultSql('${sColumn.defaultSql}')`;
             }
             uplogic += `;`;
@@ -233,30 +254,40 @@ if (args.includes("--create-config")) {
 
         downlogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
 
+        // @ts-ignore
         Object.keys(oldSchema[table].columns)
           .forEach((column, cIndex) => {
             if (cIndex !== 0) {
               downlogic += `\n`
             }
+            // @ts-ignore
             const sColumn = oldSchema[table].columns[column];
+            // @ts-ignore
             downlogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
 
+            // @ts-ignore
             if (sColumn.primary) {
               downlogic += `.primary()`;
             }
+            // @ts-ignore
             if (sColumn.nullable) {
               downlogic += `.nullable()`;
             }
+            // @ts-ignore
             if (sColumn.unique) {
               downlogic += `.unique()`;
             }
+            // @ts-ignore
             if (sColumn.unsigned) {
               downlogic += `.unsigned()`;
             }
+            // @ts-ignore
             if (sColumn.autoIncrement) {
               downlogic += `.autoIncrement()`;
             }
+            // @ts-ignore
             if ((sColumn.defaultSql ?? "").trim().length > 0) {
+              // @ts-ignore
               downlogic += `.defaultSql('${sColumn.defaultSql}')`;
             }
             downlogic += `;`;

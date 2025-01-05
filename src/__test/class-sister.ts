@@ -1,4 +1,4 @@
-import {column, defaultSql, required, primary, table, type, unique, unsigned, autoIncrement} from "../decorators/index.js";
+import {column, required, primary, table, type, unique, autoIncrement} from "../decorators/index.js";
 
 @table("test_par_sis")
 export class TestSister {

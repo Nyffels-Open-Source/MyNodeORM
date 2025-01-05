@@ -1,6 +1,6 @@
 import 'reflect-metadata';
-import {propertyType} from "../models/property.models.js";
-import {Factory} from "../models/factory.models.js";
+import {propertyType} from "../models/index.js";
+import {Factory} from "../models/index.js";
 
 const nameMetaDatakey = Symbol('name');
 const typeMetaDatakey = Symbol('type');
@@ -133,6 +133,7 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
 
           // @ts-ignore
           const intLength = +lengths[0];
+          // @ts-ignore
           const decimalLength = +lengths[1];
 
           if (Number.isNaN(intLength)) {
@@ -167,6 +168,7 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
 
           return `DECIMAL(${intLength}, ${decimalLength})`;
         } else {
+          // @ts-ignore
           const intLength = +lengths[0];
 
           if (Number.isNaN(intLength)) {
