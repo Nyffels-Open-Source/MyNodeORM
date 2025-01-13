@@ -6,6 +6,7 @@ import {Schema} from "./models/schema.models.js";
 import {mkdirSync} from "fs";
 import {MigrationFileBuilder} from "./models/index.js";
 import {isEqual} from 'lodash-es';
+import mysql, {RowDataPacket} from "mysql2/promise";
 
 
 const args = process.argv.slice(2);
@@ -34,7 +35,8 @@ if (args.includes("--create-config")) {
   `;
   fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
   console.log("✅ Schema config file created and saved at " + schemaScriptPath + ".");
-} else if (args.includes("--migration")) {
+}
+else if (args.includes("--migration")) {
   if (!args.some(e => /^--name=*./.test(e))) {
     console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
     process.exit(1);
@@ -317,13 +319,48 @@ if (args.includes("--create-config")) {
   }
 
   console.log("✅  Migration completed.");
-} else if (args.includes("--upgrade")) {
-  // TODO Upgrade database to latest or given migration
-} else if (args.includes("--downgrade")) {
-  // TODO Downgrade one migration
-} else if (args.includes("--rebase")) {
-  // TODO Implement an existing database to the migeration flows latest migration. 
-} else {
+}
+else if (args.includes("--migrate")) {
+  // TODO
+}
+else if (args.includes("--generate-integration-script")) {
+  const runIntegration = async () => {
+    const connectionstringRaw = args.find(a => a.includes('--connectionstring='));
+    if (!connectionstringRaw) {
+      throw Error("Connection string is missing and is required.");
+    }
+
+    const connectionstring = connectionstringRaw.replace("--connectionstring=", "");
+    const server = (/Server=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
+    const port = (/Port=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
+    const database = (/Database=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
+    const password = (/Pwd=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
+    const user = (/Uid=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
+    
+    const connection = await mysql.createConnection({
+      host: server, 
+      port: port ? +port : 3306,
+      database: database,
+      user: user,
+      password: password,
+    });
+    
+    const [tablesRes] = await connection.query("SHOW TABLES");
+    const tables = (tablesRes as RowDataPacket[]).map(x => x[`Tables_in_${database}`]);
+    console.log(tables);
+    
+    // TODO Get connection 
+    // TODO Create JSON schema of current setup 
+    // TODO Compare with current connection schema (latest)
+    // TODO Create unique script to update the database to the latest version 
+    // TODO Save script to review 
+  }
+  runIntegration().then(() => {
+    console.log("integration completed.");
+    process.exit(1);
+  });
+}
+else {
   console.error("❌ No valid action found!");
   process.exit(1);
 }
