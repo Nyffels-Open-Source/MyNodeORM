@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import {Schema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import { createRequire } from 'module';
-import {uniq} from "lodash-es";
+import {add, uniq} from "lodash-es";
 
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
@@ -53,7 +53,7 @@ else if (args.includes("--generate-integration-script")) {
     if (!connectionstringRaw) {
       throw Error("Connection string is missing and is required.");
     }
-    
+
     const connectionstring = connectionstringRaw.replace("--connectionstring=", "");
     const server = (/Server=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
     const port = (/Port=(.*?)(;|$)/.exec(connectionstring) ?? [])[1];
@@ -97,7 +97,7 @@ else if (args.includes("--generate-integration-script")) {
     }
 
     /* Load migration schema */
-    
+
     const migrationLocationPath = args.find((a) => a.includes('--migration-location='))
       ?.replace('--migration-location=', '') ?? "./";
     const migrationLocation = path.join(process.cwd(), migrationLocationPath, "migrations");
@@ -108,12 +108,12 @@ else if (args.includes("--generate-integration-script")) {
     if (migrationSchema === undefined) {
         console.error("Migration schema not found");
     }
-    
+
     /* Compare current schema to migration schema with script creation */
     const scriptLines: string[] = [`USE ${database};`]
     const currentTables = Object.keys(schema);
     const migrationTables = Object.keys(migrationSchema);
-    
+
     const droptables = currentTables.filter(e => !migrationTables.includes(e));
     const addtables = migrationTables.filter(e => !currentTables.includes(e));
     const updateTables = currentTables.filter(e => migrationTables.includes(e));
@@ -178,19 +178,20 @@ else if (args.includes("--generate-integration-script")) {
         const dbTableSchema = schema[table]?.columns;
         const migrationTableSchema = migrationSchema[table]?.columns;
 
+        const addColumnScript: string[] = [];
+        let dropColumnScript: string | null = null;
+        const modifyColumnScript: string[] = [];
+        const addedUniqColumns: string[] = [];
+
         if (dbTableSchema === undefined || migrationTableSchema === undefined) {
             continue;
         }
-
-        let hasDifferences = false;
 
         const columnsToAdd = Object.keys(migrationTableSchema).filter(e => !Object.keys(dbTableSchema).includes(e));
         const columnsToDelete = Object.keys(dbTableSchema).filter(e => !Object.keys(migrationTableSchema).includes(e));
         const columnsToCheck = Object.keys(migrationTableSchema).filter(e => Object.keys(dbTableSchema).includes(e));
 
         if (columnsToAdd.length > 0) {
-            const addColumnScript: string[] = [];
-            const addedUniqColumns: string[] = [];
             for (const column of columnsToAdd) {
                 const data = migrationTableSchema[column];
 
@@ -221,33 +222,77 @@ else if (args.includes("--generate-integration-script")) {
                     addedUniqColumns.push(column);
                 }
             }
-
-            for (const column of addedUniqColumns) {
-                addColumnScript.push(`ADD UNIQUE INDEX ${column}_UNIQUE (${column} ASC) VISIBLE`);
-            }
-
-            scriptLines.push(`ALTER TABLE ${table} ${addColumnScript.join(", ")};`)
         }
 
         if (columnsToDelete.length > 0) {
-            scriptLines.push(`ALTER TABLE ${table} DROP COLUMN ${columnsToDelete.join(', ')};`);
+            dropColumnScript = `DROP COLUMN ${columnsToDelete.join(', ')}`;
         }
 
         if (columnsToCheck.length > 0) {
-            // TODO
+            for (const column of columnsToCheck) {
+                let hasDifferences = false;
+
+                const dbColumn = dbTableSchema[column];
+                const migrationColumn = migrationTableSchema[column];
+
+                if (dbColumn === undefined || migrationColumn === undefined) {
+                    continue;
+                }
+
+                if (dbColumn.type != migrationColumn.type) hasDifferences = true;
+                if (dbColumn.unique != migrationColumn.unique) {
+                    if (migrationColumn.unique) {
+                        addedUniqColumns.push(column);
+                    } else {
+                        // TODO DROP uniq column
+                    }
+                };
+                if (dbColumn.autoIncrement != migrationColumn.autoIncrement) hasDifferences = true;
+                if (dbColumn.nullable != migrationColumn.nullable) hasDifferences = true;
+                if (dbColumn.defaultSql != migrationColumn.defaultSql) hasDifferences = true;
+                if (dbColumn.unsigned != migrationColumn.unsigned) hasDifferences = true;
+
+                if (hasDifferences) {
+                    let sql = "";
+                    sql += `${column} ${migrationColumn.type}`;
+                    if (migrationColumn.unsigned) {
+                        sql += ` UNSIGNED`;
+                    }
+                    sql += ` ${migrationColumn.nullable ? 'NULL' : 'NOT NULL'}`;
+                    if (migrationColumn.defaultSql) {
+                        sql += ` DEFAULT ${migrationColumn.defaultSql}`;
+                    }
+                    if (migrationColumn.autoIncrement) {
+                        sql += ` AUTO_INCREMENT`;
+                    }
+
+                    modifyColumnScript.push(`MODIFY COLUMN ${sql}`);
+                }
+
+                // TODO Foreign keys
+
+                if (dbColumn.primary != migrationColumn.primary) {
+                    redoPrimaryKeys.push(table);
+                }
+            }
         }
 
-        // if (Object.keys(dbTableSchema.columns) != Object.keys(migrationTableSchema.columns)) {
-        //     hasDifferences = true;
-        //
-        //     console.log(Object.keys(dbTableSchema.columns));
-        //     console.log(Object.keys(dbTableSchema.columns));
-        // }
-
-        if (hasDifferences) {
-            console.log(table);
+        let lines: string[] = [];
+        if (addColumnScript.length > 0) {
+            lines = lines.concat(addColumnScript);
         }
-        // TODO Check for differences.
+        if (dropColumnScript) {
+            lines.push(dropColumnScript);
+        }
+        if (modifyColumnScript.length > 0) {
+            lines = lines.concat(modifyColumnScript);
+        }
+        if (addedUniqColumns.length > 0) {
+            for (const column of uniq(addedUniqColumns)) {
+                lines.push(`ADD UNIQUE INDEX ${column}_UNIQUE (${column} ASC) VISIBLE`);
+            }
+        }
+        scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`);
     }
 
     if (redoPrimaryKeys.length > 0) {
@@ -258,13 +303,13 @@ else if (args.includes("--generate-integration-script")) {
 
     scriptLines.push(`CREATE TABLE __myNodeORM (version VARCHAR(36) NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
     scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES (${latestMigrationVersion});`);
-    
+
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))
       ?.replace('--output=', '') ?? "./";
     const saveLocation = path.join(process.cwd(), saveLocationPath, "integration-script.sql");
     fs.writeFileSync(saveLocation, scriptLines.join('\n'));
-    
+
     return;
   }
   runIntegration()
