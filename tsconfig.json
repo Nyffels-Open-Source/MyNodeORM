@@ -26,5 +26,5 @@
     "experimentalDecorators": true,
     "lib": ["es2023"]
   },
-  "include": ["src/index.ts", "src/app.ts"],
+  "include": ["src/index.ts", "src/app.ts", "src/logic/migration.logic.ts"],
 }
