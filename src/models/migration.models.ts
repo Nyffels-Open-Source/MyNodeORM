@@ -173,7 +173,7 @@ export class MigrationColumn {
         return this;
     }
 
-    public autoincrement() {
+    public autoIncrement() {
         this._autoIncrement = true;
         return this;
     }
