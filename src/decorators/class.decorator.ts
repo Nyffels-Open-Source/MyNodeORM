@@ -9,7 +9,7 @@ export function table(datebaseTableName: string) {
 
 export function getTable(sourceObject: Object) {
   const factory = new Factory();
-  const targetClass = factory.create(sourceObject as any);
+  const targetClass: any = factory.create(sourceObject as any);
 
   try {
     return Reflect.getMetadata(tableMetaDataKey, (targetClass as any).constructor) as string;
