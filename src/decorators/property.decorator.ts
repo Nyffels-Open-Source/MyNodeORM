@@ -181,14 +181,14 @@ export function getSqlType<T>(sourceObject: Object, propertyKey: keyof T): strin
             process.exit(1);
           }
 
-          return `INT(${intLength})`;
+          return intLength === 255 ? `INT` : `INT(${intLength})`;
         }
       }
       case "bignumber": {
         return "BIGINT";
       }
       case "boolean": {
-        return "TINYINT(1)";
+        return "TINYINT";
       }
       case "date": {
         return "DATE";
