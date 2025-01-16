@@ -112,6 +112,7 @@ if (args.includes("--create-config")) {
       .find(x => x);
     const migrationSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json"))
       .toString()) as Schema;
+    
 
     if (migrationSchema === undefined) {
       console.error("Migration schema not found");
@@ -192,6 +193,7 @@ if (args.includes("--create-config")) {
       let dropColumnScript: string[] = [];
       const modifyColumnScript: string[] = [];
       const addedUniqColumns: string[] = [];
+      const deletedUniqColumns: string[] = []
       let redoPrimary = false;
 
       if (dbTableSchema === undefined || migrationTableSchema === undefined) {
@@ -244,8 +246,15 @@ if (args.includes("--create-config")) {
       if (columnsToDelete.length > 0) {
         for (const column of columnsToDelete) {
           dropColumnScript.push(`DROP COLUMN ${column}`);
-          if (dbTableSchema[column]?.primary) {
+          const dbData = dbTableSchema[column];
+          if (dbData === undefined) {
+            continue;
+          }
+          if (dbData.primary) {
             redoPrimary = true;
+          }
+          if (dbData.unique) {
+            deletedUniqColumns.push(column);
           }
         }
       }
@@ -265,19 +274,6 @@ if (args.includes("--create-config")) {
             .replaceAll(" ", "") != migrationColumn.type.toLowerCase()
             .replaceAll(" ", "")) {
             hasDifferences = true;
-
-            if (table === "tbl_account_number" && hasDifferences) {
-              console.log(column);
-              console.log(dbColumn.type);
-              console.log(migrationColumn.type);
-            }
-          }
-          if (dbColumn.unique != migrationColumn.unique) {
-            if (migrationColumn.unique) {
-              addedUniqColumns.push(column);
-            } else {
-              // TODO DROP uniq column
-            }
           }
           if (dbColumn.autoIncrement != migrationColumn.autoIncrement) {
             hasDifferences = true;
@@ -293,6 +289,13 @@ if (args.includes("--create-config")) {
           }
           if (dbColumn.primary != migrationColumn.primary) {
             redoPrimary = true;
+          }
+          if (dbColumn.unique != migrationColumn.unique) {
+            if (migrationColumn.unique && !dbColumn.unique) {
+              addedUniqColumns.push(column);
+            } else if (!migrationColumn.unique && dbColumn.unique) {
+              deletedUniqColumns.push(column);
+            }
           }
 
           if (hasDifferences) {
@@ -326,7 +329,15 @@ if (args.includes("--create-config")) {
       }
       if (redoPrimary) {
         lines.push("DROP PRIMARY KEY");
-        lines.push(`ADD PRIMARY KEY (${Object.keys(migrationTableSchema).filter(column => migrationTableSchema[column]?.primary).join(", ")})`)
+        const primaryKeys = Object.keys(migrationTableSchema).filter(column => migrationTableSchema[column]?.primary);
+        if (primaryKeys.length > 0) {
+          lines.push(`ADD PRIMARY KEY (${primaryKeys.join(", ")})`) 
+        }
+      }
+      if (deletedUniqColumns.length > 0) {
+        for (const column of uniq(deletedUniqColumns)) {
+          lines.push(`DROP INDEX ${column}_UNIQUE`);
+        }
       }
       if (addedUniqColumns.length > 0) {
         for (const column of uniq(addedUniqColumns)) {
@@ -338,13 +349,8 @@ if (args.includes("--create-config")) {
       }
     }
 
-    scriptLines.push(`CREATE TABLE __myNodeORM
-                      (
-                          version VARCHAR(36) NOT NULL,
-                          DATE    DATETIME    NOT NULL DEFAULT NOW()
-                      );`);
-    scriptLines.push(`INSERT INTO __myNodeORM (version)
-                      VALUES ('${latestMigrationVersion}');`);
+    scriptLines.push(`CREATE TABLE __myNodeORM(version VARCHAR(36) NOT NULL,DATE DATETIME NOT NULL DEFAULT NOW());`);
+    scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES ('${latestMigrationVersion}');`);
 
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))
