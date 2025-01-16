@@ -349,6 +349,7 @@ if (args.includes("--create-config")) {
       }
     }
 
+    scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
     scriptLines.push(`CREATE TABLE __myNodeORM(version VARCHAR(36) NOT NULL,DATE DATETIME NOT NULL DEFAULT NOW());`);
     scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES ('${latestMigrationVersion}');`);
 
