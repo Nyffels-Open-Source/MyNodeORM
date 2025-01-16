@@ -54,9 +54,11 @@ export function createMigration(name: string, migrationLocationPath: string, cla
             continue;
         }
 
-        schema[table] = {
+        if (!schema[table]) {
+          schema[table] = {
             columns: {}
-        };
+          }; 
+        }
 
         const properties = getAllProperties(dbClass);
         for (let property of properties) {
