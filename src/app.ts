@@ -81,7 +81,7 @@ if (args.includes("--create-config")) {
       for (const column of (columns as { Field: string; Type: string, Null: "YES" | "NO", Key: "PRI" | "UNI" | "MUL", Default: string, Extra: string }[])) {
         const index = (indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).filter(e => e.Column_name == column.Field);
         const isUnique = !!index.find(e => !e.Non_unique && e.Key_name != "PRIMARY");
-        
+
         schema[table].columns[column.Field] = {
           type: column.Type.replace(" unsigned", ""),
           primary: column.Key == "PRI",
@@ -112,7 +112,7 @@ if (args.includes("--create-config")) {
       .find(x => x);
     const migrationSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json"))
       .toString()) as Schema;
-    
+
 
     if (migrationSchema === undefined) {
       console.error("Migration schema not found");
@@ -184,7 +184,7 @@ if (args.includes("--create-config")) {
                    );`;
       scriptLines.push(sql);
     }
-    
+
     for (const table of updateTables) {
       const dbTableSchema = schema[table]?.columns;
       const migrationTableSchema = migrationSchema[table]?.columns;
@@ -281,7 +281,7 @@ if (args.includes("--create-config")) {
           if (dbColumn.nullable != migrationColumn.nullable) {
             hasDifferences = true;
           }
-          if (dbColumn.defaultSql != migrationColumn.defaultSql) {
+          if ((dbColumn.defaultSql ? (dbColumn.defaultSql ?? "").replace(/^\'/, "").replace(/\'$/, "") : dbColumn.defaultSql) != (migrationColumn.defaultSql ? (migrationColumn.defaultSql ?? "").replace(/^\'/, "").replace(/\'$/, "") : migrationColumn.defaultSql)) {
             hasDifferences = true;
           }
           if (dbColumn.unsigned != migrationColumn.unsigned) {
@@ -290,7 +290,7 @@ if (args.includes("--create-config")) {
           if (dbColumn.primary != migrationColumn.primary) {
             redoPrimary = true;
           }
-          
+
           if (dbColumn.unique != migrationColumn.unique) {
             if (migrationColumn.unique && !dbColumn.unique) {
               addedUniqColumns.push(column);
@@ -332,11 +332,12 @@ if (args.includes("--create-config")) {
         const [indexes] = await connection.query(`SHOW INDEXES FROM ${table};`);
         const indexExists = !!(indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).find(e => e.Key_name === "PRIMARY");
         if (indexExists) {
-          lines.push("DROP PRIMARY KEY"); 
+          lines.push("DROP PRIMARY KEY");
         }
-        const primaryKeys = Object.keys(migrationTableSchema).filter(column => migrationTableSchema[column]?.primary);
+        const primaryKeys = Object.keys(migrationTableSchema)
+          .filter(column => migrationTableSchema[column]?.primary);
         if (primaryKeys.length > 0) {
-          lines.push(`ADD PRIMARY KEY (${primaryKeys.join(", ")})`) 
+          lines.push(`ADD PRIMARY KEY (${primaryKeys.join(", ")})`)
         }
       }
       if (deletedUniqColumns.length > 0) {
@@ -355,8 +356,13 @@ if (args.includes("--create-config")) {
     }
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
-    scriptLines.push(`CREATE TABLE __myNodeORM(version VARCHAR(36) NOT NULL,DATE DATETIME NOT NULL DEFAULT NOW());`);
-    scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES ('${latestMigrationVersion}');`);
+    scriptLines.push(`CREATE TABLE __myNodeORM
+                      (
+                          version VARCHAR(36) NOT NULL,
+                          DATE    DATETIME    NOT NULL DEFAULT NOW()
+                      );`);
+    scriptLines.push(`INSERT INTO __myNodeORM (version)
+                      VALUES ('${latestMigrationVersion}');`);
 
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))
