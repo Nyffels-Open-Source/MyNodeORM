@@ -100,6 +100,10 @@ if (args.includes("--create-config")) {
     const migrationLocationPath = args.find((a) => a.includes('--migration-location='))
       ?.replace('--migration-location=', '') ?? "./";
     const migrationLocation = path.join(process.cwd(), migrationLocationPath, "migrations");
+    if (!fs.existsSync(migrationLocation)) {
+      throw new Error(`Migration location '${migrationLocation}' not found.`);
+    }
+
     const latestMigrationVersion = fs.readdirSync(migrationLocation, {withFileTypes: true})
       .filter(e => e.isDirectory())
       .map(e => e.name)
@@ -179,16 +183,16 @@ if (args.includes("--create-config")) {
                    );`;
       scriptLines.push(sql);
     }
-
-    const redoPrimaryKeys: string [] = []
+    
     for (const table of updateTables) {
       const dbTableSchema = schema[table]?.columns;
       const migrationTableSchema = migrationSchema[table]?.columns;
 
       const addColumnScript: string[] = [];
-      let dropColumnScript: string | null = null;
+      let dropColumnScript: string[] = [];
       const modifyColumnScript: string[] = [];
       const addedUniqColumns: string[] = [];
+      let redoPrimary = false;
 
       if (dbTableSchema === undefined || migrationTableSchema === undefined) {
         continue;
@@ -228,7 +232,7 @@ if (args.includes("--create-config")) {
           addColumnScript.push(`ADD COLUMN ${sql}`);
 
           if (data.primary) {
-            redoPrimaryKeys.push(table);
+            redoPrimary = true;
           }
 
           if (data.unique) {
@@ -238,11 +242,16 @@ if (args.includes("--create-config")) {
       }
 
       if (columnsToDelete.length > 0) {
-        dropColumnScript = `DROP COLUMN ${columnsToDelete.join(', ')}`;
+        for (const column of columnsToDelete) {
+          dropColumnScript.push(`DROP COLUMN ${column}`);
+          if (dbTableSchema[column]?.primary) {
+            redoPrimary = true;
+          }
+        }
       }
 
       if (columnsToCheck.length > 0) {
-        for (const column of columnsToCheck) {          
+        for (const column of columnsToCheck) {
           let hasDifferences = false;
 
           const dbColumn = dbTableSchema[column];
@@ -252,7 +261,9 @@ if (args.includes("--create-config")) {
             continue;
           }
 
-          if (dbColumn.type.toLowerCase().replaceAll(" ", "") != migrationColumn.type.toLowerCase().replaceAll(" ", "")) {
+          if (dbColumn.type.toLowerCase()
+            .replaceAll(" ", "") != migrationColumn.type.toLowerCase()
+            .replaceAll(" ", "")) {
             hasDifferences = true;
 
             if (table === "tbl_account_number" && hasDifferences) {
@@ -268,7 +279,6 @@ if (args.includes("--create-config")) {
               // TODO DROP uniq column
             }
           }
-          ;
           if (dbColumn.autoIncrement != migrationColumn.autoIncrement) {
             hasDifferences = true;
           }
@@ -280,6 +290,9 @@ if (args.includes("--create-config")) {
           }
           if (dbColumn.unsigned != migrationColumn.unsigned) {
             hasDifferences = true;
+          }
+          if (dbColumn.primary != migrationColumn.primary) {
+            redoPrimary = true;
           }
 
           if (hasDifferences) {
@@ -298,12 +311,6 @@ if (args.includes("--create-config")) {
 
             modifyColumnScript.push(`MODIFY COLUMN ${sql}`);
           }
-
-          // TODO Foreign keys
-
-          if (dbColumn.primary != migrationColumn.primary) {
-            redoPrimaryKeys.push(table);
-          }
         }
       }
 
@@ -312,10 +319,14 @@ if (args.includes("--create-config")) {
         lines = lines.concat(addColumnScript);
       }
       if (dropColumnScript) {
-        lines.push(dropColumnScript);
+        lines.concat(dropColumnScript);
       }
       if (modifyColumnScript.length > 0) {
         lines = lines.concat(modifyColumnScript);
+      }
+      if (redoPrimary) {
+        lines.push("DROP PRIMARY KEY");
+        lines.push(`ADD PRIMARY KEY (${Object.keys(migrationTableSchema).filter(column => migrationTableSchema[column]?.primary).join(", ")})`)
       }
       if (addedUniqColumns.length > 0) {
         for (const column of uniq(addedUniqColumns)) {
@@ -323,13 +334,7 @@ if (args.includes("--create-config")) {
         }
       }
       if (lines.length > 0) {
-        scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`); 
-      }
-    }
-
-    if (redoPrimaryKeys.length > 0) {
-      for (const table of uniq(redoPrimaryKeys)) {
-        // TODO
+        scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`);
       }
     }
 
@@ -339,19 +344,20 @@ if (args.includes("--create-config")) {
                           DATE    DATETIME    NOT NULL DEFAULT NOW()
                       );`);
     scriptLines.push(`INSERT INTO __myNodeORM (version)
-                      VALUES (${latestMigrationVersion});`);
+                      VALUES ('${latestMigrationVersion}');`);
 
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))
       ?.replace('--output=', '') ?? "./";
     const saveLocation = path.join(process.cwd(), saveLocationPath, "integration-script.sql");
     fs.writeFileSync(saveLocation, scriptLines.join('\n'));
+    console.log(`✅ Integration script saved at '${saveLocation}'`);
 
     return;
   }
   runIntegration()
     .then(() => {
-      console.log("✅ Integration script created.");
+      console.log("✅ Integration completed.");
       process.exit(1);
     });
 } else {
