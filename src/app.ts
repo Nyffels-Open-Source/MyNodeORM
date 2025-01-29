@@ -78,9 +78,29 @@ if (args.includes("--create-config")) {
 
       const [columns] = await connection.query(`DESCRIBE ${table};`);
       const [indexes] = await connection.query(`SHOW INDEXES FROM ${table};`);
+      const [keys] = await connection.query(`SELECT i.CONSTRAINT_NAME,
+                                                    i.TABLE_NAME,
+                                                    k.COLUMN_NAME,
+                                                    k.REFERENCED_TABLE_NAME,
+                                                    k.REFERENCED_COLUMN_NAME,
+                                                    r.UPDATE_RULE,
+                                                    r.DELETE_RULE
+                                             FROM information_schema.TABLE_CONSTRAINTS i
+                                                      LEFT JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+                                                      LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON i.CONSTRAINT_NAME = r.CONSTRAINT_NAME
+                                             WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY'
+                                               AND i.TABLE_NAME = '${table}'
+                                               AND i.TABLE_SCHEMA = DATABASE();`);
+      console.log(keys);
       for (const column of (columns as { Field: string; Type: string, Null: "YES" | "NO", Key: "PRI" | "UNI" | "MUL", Default: string, Extra: string }[])) {
         const index = (indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).filter(e => e.Column_name == column.Field);
         const isUnique = !!index.find(e => !e.Non_unique && e.Key_name != "PRIMARY");
+
+        const foreignKey = (indexes as any[]).find(e => e['Table'] == table && e["Column_name"] == column.Field && e['Key_name'].includes('_idx'));
+        if (column.Field == 'price_subscriber_id') {
+          console.log(foreignKey);
+          console.log(indexes);
+        }
 
         schema[table].columns[column.Field] = {
           type: column.Type.replace(" unsigned", ""),
@@ -92,6 +112,10 @@ if (args.includes("--create-config")) {
           defaultSql: column.Default,
           foreignKey: null // TODO
         }
+      }
+
+      if (table === "tbl_article_price") {
+        // console.log(schema["tbl_article_price"]);
       }
     }
 
@@ -281,7 +305,9 @@ if (args.includes("--create-config")) {
           if (dbColumn.nullable != migrationColumn.nullable) {
             hasDifferences = true;
           }
-          if ((dbColumn.defaultSql ? (dbColumn.defaultSql ?? "").replace(/^\'/, "").replace(/\'$/, "") : dbColumn.defaultSql) != (migrationColumn.defaultSql ? (migrationColumn.defaultSql ?? "").replace(/^\'/, "").replace(/\'$/, "") : migrationColumn.defaultSql)) {
+          if ((dbColumn.defaultSql ? (dbColumn.defaultSql ?? "").replace(/^\'/, "")
+            .replace(/\'$/, "") : dbColumn.defaultSql) != (migrationColumn.defaultSql ? (migrationColumn.defaultSql ?? "").replace(/^\'/, "")
+            .replace(/\'$/, "") : migrationColumn.defaultSql)) {
             hasDifferences = true;
           }
           if (dbColumn.unsigned != migrationColumn.unsigned) {
@@ -354,7 +380,7 @@ if (args.includes("--create-config")) {
         scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`);
       }
     }
-    
+
     // Foreign key naming scheme => FK_ChildTable_childColumn_ParentTable_parentColumn
     // TODO Create
     /*
@@ -368,7 +394,7 @@ if (args.includes("--create-config")) {
       ON DELETE NO ACTION
       ON UPDATE NO ACTION;
      */
-    
+
     // TODO Delete 
     /*
     ALTER TABLE `doffice`.`tbl_account_number` 
@@ -377,7 +403,7 @@ if (args.includes("--create-config")) {
     DROP INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx` ;
     ;
      */
-    
+
     // TODO Modify
     // Drop first 
     // Add later
