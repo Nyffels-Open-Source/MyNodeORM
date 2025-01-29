@@ -148,6 +148,7 @@ export class MigrationColumn {
     private _unsigned: boolean = false;
     private _autoIncrement: boolean = false;
     private _defaultSql: string | null = null;
+    private _foreignKey: {table: string, column: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption} | null = null;
 
     constructor(name: string, type: string, options: MigrationColumnOptions) {
         this._name = name;
@@ -186,7 +187,8 @@ export class MigrationColumn {
     };
     
     public foreignKey(table: string, column: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption) {
-        // TODO
+        this._foreignKey = {table, column, onDelete, onUpdate};
+        return this;
     }
 
     public getValues() {
