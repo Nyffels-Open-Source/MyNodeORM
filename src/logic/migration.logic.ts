@@ -129,7 +129,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
             // @ts-ignore
             if ((sColumn.defaultSql ?? "").trim().length > 0) {
               // @ts-ignore
-              uplogic += `.defaultSql('${sColumn.defaultSql}')`;
+              uplogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
             }
             if (sColumn?.foreignKey !== null) {
               // @ts-ignore
@@ -268,7 +268,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
             // @ts-ignore
             if ((sColumn.defaultSql ?? "").trim().length > 0) {
               // @ts-ignore
-              downlogic += `.defaultSql('${sColumn.defaultSql}')`;
+              downlogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
             }
             if (sColumn?.foreignKey !== null) {
               // @ts-ignore
