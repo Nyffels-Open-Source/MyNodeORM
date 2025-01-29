@@ -45,11 +45,8 @@ export function defaultSql(sql: string) {
   return Reflect.metadata(defaultMetaDatakey, sql);
 }
 
-export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignKeyOption = ForeignKeyOption.Restrict, onUpdate: ForeignKeyOption = ForeignKeyOption.Restrict) {
-  const linkedTable = getTable(table);
-  const linkedColumn = getColumn<T>(table, column);
-  
-  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table: linkedTable, column: linkedColumn, onDelete, onUpdate}));
+export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignKeyOption = ForeignKeyOption.Restrict, onUpdate: ForeignKeyOption = ForeignKeyOption.Restrict) {  
+  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table: getTable(table), column: getColumn<T>(table, column), onDelete, onUpdate}));
 }
 
 export enum ForeignKeyOption {
@@ -284,7 +281,7 @@ export function getForeignKey<T>(sourceObject: Object, propertyKey: keyof T): {t
     const factory = new Factory();
     const targetClass = factory.create<T>(sourceObject as any);
 
-    const stringyfiedData = Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string);
+    const stringyfiedData = Reflect.getMetadata(foreignKeyMetaDatakey, (targetClass as any), propertyKey as string);
     if (!stringyfiedData) {
       throw new Error("no data found!");
     }
