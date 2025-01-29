@@ -1,3 +1,5 @@
+import {ForeignKeyOption} from "../decorators/index.js";
+
 export abstract class MigrationFileBuilder {
     public static GetFileTemplate() {
         return `import {MigrationBuilder} from '@nyffels/mynodeorm';
@@ -182,6 +184,10 @@ export class MigrationColumn {
         this._defaultSql = sql;
         return this;
     };
+    
+    public foreignKey(table: string, column: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption) {
+        // TODO
+    }
 
     public getValues() {
         return {
