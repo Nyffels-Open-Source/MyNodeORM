@@ -354,6 +354,33 @@ if (args.includes("--create-config")) {
         scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`);
       }
     }
+    
+    // Foreign key naming scheme => FK_ChildTable_childColumn_ParentTable_parentColumn
+    // TODO Create
+    /*
+    ALTER TABLE `doffice`.`tbl_account_number` 
+    ADD INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx` (`subscriber_id` ASC) VISIBLE;
+    ;
+    ALTER TABLE `doffice`.`tbl_account_number` 
+    ADD CONSTRAINT `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`
+      FOREIGN KEY (`subscriber_id`)
+      REFERENCES `doffice`.`tbl_subscriber` (`subscriber_id`)
+      ON DELETE NO ACTION
+      ON UPDATE NO ACTION;
+     */
+    
+    // TODO Delete 
+    /*
+    ALTER TABLE `doffice`.`tbl_account_number` 
+    DROP FOREIGN KEY `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`;
+    ALTER TABLE `doffice`.`tbl_account_number` 
+    DROP INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx` ;
+    ;
+     */
+    
+    // TODO Modify
+    // Drop first 
+    // Add later
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
     scriptLines.push(`CREATE TABLE __myNodeORM

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import {propertyType} from "../models/index.js";
 import {Factory} from "../models/index.js";
+import {getTable} from "./class.decorator.js"
 
 const nameMetaDatakey = Symbol('name');
 const typeMetaDatakey = Symbol('type');
@@ -45,7 +46,10 @@ export function defaultSql(sql: string) {
 }
 
 export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignKeyOption = ForeignKeyOption.Restrict, onUpdate: ForeignKeyOption = ForeignKeyOption.Restrict) {
-  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table, column, onDelete, onUpdate}));
+  const linkedTable = getTable(table);
+  const linkedColumn = getColumn<T>(table, column);
+  
+  return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table: linkedTable, column: linkedColumn, onDelete, onUpdate}));
 }
 
 export enum ForeignKeyOption {
@@ -270,6 +274,21 @@ export function getDefaultSql<T>(sourceObject: Object, propertyKey: keyof T): st
     const targetClass = factory.create<T>(sourceObject as any);
 
     return Reflect.getMetadata(defaultMetaDatakey, (targetClass as any), propertyKey as string) ?? null;
+  } catch (ex) {
+    return null;
+  }
+}
+
+export function getForeignKey<T>(sourceObject: Object, propertyKey: keyof T): {table: string, column: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption} | null {
+  try {
+    const factory = new Factory();
+    const targetClass = factory.create<T>(sourceObject as any);
+
+    const stringyfiedData = Reflect.getMetadata(autoIncrementMetaDatakey, (targetClass as any), propertyKey as string);
+    if (!stringyfiedData) {
+      throw new Error("no data found!");
+    }
+    return JSON.parse(stringyfiedData);
   } catch (ex) {
     return null;
   }

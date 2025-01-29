@@ -4,17 +4,17 @@ import {mkdirSync} from "fs";
 import {isEqual} from "lodash-es";
 import {Schema} from "../models/schema.models.js";
 import {
-    getTable,
-    getAllProperties,
-    getAutoIncrement,
-    getColumn,
-    getDefaultSql,
-    getNullable,
-    getPrimary,
-    getSqlType,
-    getType,
-    getUnique,
-    getUnsigned
+  getTable,
+  getAllProperties,
+  getAutoIncrement,
+  getColumn,
+  getDefaultSql,
+  getNullable,
+  getPrimary,
+  getSqlType,
+  getType,
+  getUnique,
+  getUnsigned, getForeignKey
 } from "../decorators/index.js";
 import {MigrationFileBuilder} from "../models/index.js";
 
@@ -72,7 +72,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
                 unsigned: ['number', 'bignumber'].includes(type) ? getUnsigned(dbClass, property) : false,
                 autoIncrement: getAutoIncrement(dbClass, property),
                 defaultSql: getDefaultSql(dbClass, property) ?? null,
-                foreignKey: null // TODO
+                foreignKey: getForeignKey(dbClass, property),
             };
         }
     }
