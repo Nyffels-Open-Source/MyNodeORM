@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import {Schema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
-import {uniq} from "lodash-es";
+import {isEqual, uniq} from "lodash-es";
 import {ForeignKeyOption} from "./decorators/index.js";
 
 const require = createRequire(import.meta.url);
@@ -79,7 +79,7 @@ if (args.includes("--create-config")) {
 
       const [columns] = await connection.query(`DESCRIBE ${table};`);
       const [indexes] = await connection.query(`SHOW INDEXES FROM ${table};`);
-      const [keys] = await connection.query(`SELECT i.CONSTRAINT_NAME, i.TABLE_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE FROM information_schema.TABLE_CONSTRAINTS i LEFT JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON i.CONSTRAINT_NAME = r.CONSTRAINT_NAME WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY' AND i.TABLE_NAME = '${table}' AND i.TABLE_SCHEMA = DATABASE();`);
+      const [keys] = await connection.query(`SELECT i.CONSTRAINT_NAME, i.TABLE_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE, k.CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS i LEFT JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON i.CONSTRAINT_NAME = r.CONSTRAINT_NAME WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY' AND i.TABLE_NAME = '${table}' AND i.TABLE_SCHEMA = DATABASE();`);
       for (const column of (columns as { Field: string; Type: string, Null: "YES" | "NO", Key: "PRI" | "UNI" | "MUL", Default: string, Extra: string }[])) {
         const index = (indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).filter(e => e.Column_name == column.Field);
         const isUnique = !!index.find(e => !e.Non_unique && e.Key_name != "PRIMARY");
@@ -97,8 +97,9 @@ if (args.includes("--create-config")) {
             table: foreignKey.REFERENCED_TABLE_NAME,
             column: foreignKey.REFERENCED_COLUMN_NAME,
             onDelete: {"CASCADE": ForeignKeyOption.Cascade, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption,
-            onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption
-          } : null,
+            onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption,
+            name: foreignKey.CONSTRAINT_NAME
+          } as any : null,
         }
       }
     }
@@ -351,7 +352,21 @@ if (args.includes("--create-config")) {
               deletedUniqColumns.push(column);
             }
           }
+          
+          if (dbColumn.foreignKey && (!migrationColumn.foreignKey || dbColumn.foreignKey.column != migrationColumn.foreignKey?.column || dbColumn.foreignKey.table != migrationColumn.foreignKey?.table || dbColumn.foreignKey.onUpdate != migrationColumn.foreignKey?.onUpdate || dbColumn.foreignKey.onDelete != migrationColumn.foreignKey?.onDelete)) {
+            dropkeys.push((dbColumn.foreignKey as any)['name'])
+          }
 
+          if (migrationColumn.foreignKey !== null && (!dbColumn.foreignKey || dbColumn.foreignKey.column != migrationColumn.foreignKey?.column || dbColumn.foreignKey.table != migrationColumn.foreignKey?.table || dbColumn.foreignKey.onUpdate != migrationColumn.foreignKey?.onUpdate || dbColumn.foreignKey.onDelete != migrationColumn.foreignKey?.onDelete)) {
+            addedKeys.push({
+              column: migrationColumn.foreignKey.column,
+              table: migrationColumn.foreignKey.table,
+              sourceColumn: column, 
+              onDelete: migrationColumn.foreignKey.onDelete, 
+              onUpdate: migrationColumn.foreignKey.onUpdate,
+            });
+          }
+            
           if (hasDifferences) {
             let sql = "";
             sql += `${column} ${migrationColumn.type}`;
@@ -405,12 +420,7 @@ if (args.includes("--create-config")) {
       }
       
       if (dropkeys.length > 0) {
-        // TODO Seperate ALTER with drops!
-        /*
-          ALTER TABLE `doffice`.`tbl_account_number` 
-          DROP FOREIGN KEY `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`,
-          DROP INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx`;
-         */
+        scriptLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``).join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
       }
       
       if (addedKeys.length > 0) {
