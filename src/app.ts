@@ -4,7 +4,8 @@ import * as fs from "node:fs";
 import {Schema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
-import {add, uniq} from "lodash-es";
+import {add, isArray, uniq} from "lodash-es";
+import {ForeignKeyOption} from "./decorators/index.js";
 
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
@@ -91,16 +92,10 @@ if (args.includes("--create-config")) {
                                              WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY'
                                                AND i.TABLE_NAME = '${table}'
                                                AND i.TABLE_SCHEMA = DATABASE();`);
-      console.log(keys);
       for (const column of (columns as { Field: string; Type: string, Null: "YES" | "NO", Key: "PRI" | "UNI" | "MUL", Default: string, Extra: string }[])) {
         const index = (indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).filter(e => e.Column_name == column.Field);
         const isUnique = !!index.find(e => !e.Non_unique && e.Key_name != "PRIMARY");
-
-        const foreignKey = (indexes as any[]).find(e => e['Table'] == table && e["Column_name"] == column.Field && e['Key_name'].includes('_idx'));
-        if (column.Field == 'price_subscriber_id') {
-          console.log(foreignKey);
-          console.log(indexes);
-        }
+        const foreignKey = (keys as { CONSTRAINT_NAME: string, TABLE_NAME: string, COLUMN_NAME: string, REFERENCED_TABLE_NAME: string, REFERENCED_COLUMN_NAME: string, UPDATE_RULE: string, DELETE_RULE: string }[]).find(e => e.TABLE_NAME == table && e.COLUMN_NAME == column.Field) ?? null;
 
         schema[table].columns[column.Field] = {
           type: column.Type.replace(" unsigned", ""),
@@ -110,12 +105,13 @@ if (args.includes("--create-config")) {
           unsigned: column.Type.includes("unsigned"),
           autoIncrement: column.Extra.includes("auto_increment"),
           defaultSql: column.Default,
-          foreignKey: null // TODO
+          foreignKey: foreignKey ? {
+            table: foreignKey.REFERENCED_TABLE_NAME,
+            column: foreignKey.REFERENCED_COLUMN_NAME,
+            onDelete: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption, 
+            onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption
+          } : null,
         }
-      }
-
-      if (table === "tbl_article_price") {
-        // console.log(schema["tbl_article_price"]);
       }
     }
 
