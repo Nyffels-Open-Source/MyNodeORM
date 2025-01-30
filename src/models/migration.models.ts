@@ -6,31 +6,34 @@ export abstract class MigrationFileBuilder {
 
 export class MigrationFile {
     private _builder = new MigrationBuilder();
+    private _version = {{{{VERSION}}}}
     
     public async up() {
         /*
             You can add custom data here to be run before the migration plan.
         */
     
-        {{{{TEMPLATE-DATA-UP}}}}
+{{{{TEMPLATE-DATA-UP}}}}
         
         /*
             You can add custom data here to be run after the migration plan.
         */
         
-        _builder.execute();
+        this._builder.execute();
     }
         
-    public async down() {
+    public async down(this._version) {
         /*
             You can add custom data here to be run before the migration plan.
         */
         
-        {{{{TEMPLATE-DATA-DOWN}}}}
+{{{{TEMPLATE-DATA-DOWN}}}}
         
         /*
             You can add custom data here to be run after the migration plan.
-        */        
+        */   
+        
+        this._builder.execute(this._version - 1);     
     }
 }`;
     }

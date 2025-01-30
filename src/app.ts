@@ -119,7 +119,8 @@ if (args.includes("--create-config")) {
       .sort()
       .reverse()
       .find(x => x);
-    const migrationSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json"))
+    
+    const migrationSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (latestMigrationVersion ?? ""), "schema.json"))
       .toString()) as Schema;
 
 
@@ -463,8 +464,8 @@ if (args.includes("--create-config")) {
     }
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
-    scriptLines.push(`CREATE TABLE __myNodeORM (version VARCHAR(36) NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
-    scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES ('${latestMigrationVersion}');`);
+    scriptLines.push(`CREATE TABLE __myNodeORM (version INT NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
+    scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES (${latestMigrationVersion.split(".").find(x => x)});`);
 
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))

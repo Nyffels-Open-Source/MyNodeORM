@@ -34,17 +34,20 @@ export function createMigration(name: string, migrationLocationPath: string, cla
   const folders = fs.readdirSync(migrationLocation, {withFileTypes: true})
     .filter(f => f.isDirectory())
     .map(f => f.name);
+  
   let version = 0;
+  const migrationName = `${version}.${getDateFormat()}_${name}`;
+  
   let oldSchema!: Schema;
   if ((folders).length > 0) {
     // @ts-ignore
     version = (folders.map(f => +f.split(".")[0])
       .sort()
       .reverse()[0]) + 1;
-    oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, "schema.json"))
+    
+    oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (folders.sort().reverse().find(x => x) ?? ""), "schema.json"))
       .toString());
   }
-  const migrationName = `${version}.${getDateFormat()}_${name}`;
 
   console.log("• Creating schema...");
   const schema: Schema = {};
@@ -77,7 +80,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
     }
   }
 
-  fs.writeFileSync(path.join(migrationLocation, "schema.json"), JSON.stringify(schema));
+  fs.writeFileSync(path.join(migrationLocation, migrationName, "schema.json"), JSON.stringify(schema));
 
   console.log("• Schema created.");
 
@@ -175,16 +178,27 @@ export function createMigration(name: string, migrationLocationPath: string, cla
       upQueries.push(sql);
     }
     
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", upQueries.map(q => `this._builder.addQuery('${q}');`).join("\n"));
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downQueries.map(q => `this._builder.addQuery('${q}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", upQueries.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downQueries.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
 
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
     fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
     console.log("• Migration file created.");
   } else {
+    console.log("• Creating migration file...");
+    let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
+
+    const scriptLines: string[] = [];
+    const newSchema = Object.keys(schema);
+    const oldSchema = Object.keys(oldSchema);
+
+
+    
+    
     // A schema exists!
     
-    // console.log("• Creating migration file...");
+    // 
     // let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
     //
     // let downlogic = ''; // TODO Create up logic
@@ -333,7 +347,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
     //
     // mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
     // fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
-    console.log("• Migration file created.");
+    // console.log("• Migration file created.");
   }
 
   console.log("✅  Migration completed.");
