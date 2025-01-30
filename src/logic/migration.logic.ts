@@ -190,8 +190,8 @@ export function createMigration(name: string, migrationLocationPath: string, cla
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
 
     const scriptLines: string[] = [];
-    const newSchema = Object.keys(schema);
-    const oldSchema = Object.keys(oldSchema);
+    // const newSchema = Object.keys(schema);
+    // const oldSchema = Object.keys(oldSchema);
 
 
     
