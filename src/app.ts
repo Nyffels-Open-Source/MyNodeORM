@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import {Schema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
-import {add, isArray, uniq} from "lodash-es";
+import {uniq} from "lodash-es";
 import {ForeignKeyOption} from "./decorators/index.js";
 
 const require = createRequire(import.meta.url);
@@ -108,7 +108,7 @@ if (args.includes("--create-config")) {
           foreignKey: foreignKey ? {
             table: foreignKey.REFERENCED_TABLE_NAME,
             column: foreignKey.REFERENCED_COLUMN_NAME,
-            onDelete: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption, 
+            onDelete: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption,
             onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption
           } : null,
         }
@@ -160,6 +160,7 @@ if (args.includes("--create-config")) {
       const columnSql: string[] = [];
       const primaryColumns: string[] = [];
       const uniqueColumns: string[] = [];
+      const foreignKeys: { table: string, column: string, sourceColumn: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption }[] = [];
       for (const column of Object.keys(tableSchema)) {
         const data = tableSchema[column];
         if (data == null) {
@@ -186,6 +187,9 @@ if (args.includes("--create-config")) {
         if (data.unique) {
           uniqueColumns.push(column);
         }
+        if (data.foreignKey) {
+          foreignKeys.push({column: data.foreignKey.column, table: data.foreignKey.table, sourceColumn: column, onDelete: data.foreignKey.onDelete, onUpdate: data.foreignKey.onUpdate});
+        }
       }
 
       if (primaryColumns.length > 0) {
@@ -196,12 +200,45 @@ if (args.includes("--create-config")) {
         columnSql.push(`UNIQUE INDEX ${uniqueColumn}_UNIQUE (${uniqueColumn} ASC) VISIBLE`);
       }
 
-      // TODO Foreign keys
+      for (const key of foreignKeys) {
+        let onDeleteAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION' = "NO ACTION";
+        let onUpdateAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION' = "NO ACTION";
 
-      const sql = `CREATE TABLE ${table}
-                   (
-                       ${columnSql.join(', ')}
-                   );`;
+        switch (key.onDelete) {
+          case ForeignKeyOption.SetNull:
+            onDeleteAction = "SET NULL";
+            break;
+          case ForeignKeyOption.Restrict:
+            onDeleteAction = "RESTRICT";
+            break;
+          case ForeignKeyOption.Cascade:
+            onDeleteAction = "CASCADE";
+            break;
+          case ForeignKeyOption.NoAction:
+            onDeleteAction = "NO ACTION";
+            break;
+        }
+
+        switch (key.onUpdate) {
+          case ForeignKeyOption.SetNull:
+            onUpdateAction = "SET NULL";
+            break;
+          case ForeignKeyOption.Restrict:
+            onUpdateAction = "RESTRICT";
+            break;
+          case ForeignKeyOption.Cascade:
+            onUpdateAction = "CASCADE";
+            break;
+          case ForeignKeyOption.NoAction:
+            onUpdateAction = "NO ACTION";
+            break;
+        }
+
+        columnSql.push(`INDEX \`fk_${key.table}_${key.column}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+        columnSql.push(`CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+      }
+
+      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
       scriptLines.push(sql);
     }
 
@@ -405,13 +442,8 @@ if (args.includes("--create-config")) {
     // Add later
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
-    scriptLines.push(`CREATE TABLE __myNodeORM
-                      (
-                          version VARCHAR(36) NOT NULL,
-                          DATE    DATETIME    NOT NULL DEFAULT NOW()
-                      );`);
-    scriptLines.push(`INSERT INTO __myNodeORM (version)
-                      VALUES ('${latestMigrationVersion}');`);
+    scriptLines.push(`CREATE TABLE __myNodeORM (version VARCHAR(36) NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
+    scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES ('${latestMigrationVersion}');`);
 
     /* Save the script */
     const saveLocationPath = args.find((a) => a.includes('--output='))
