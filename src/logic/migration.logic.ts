@@ -14,7 +14,7 @@ import {
   getSqlType,
   getType,
   getUnique,
-  getUnsigned, getForeignKey
+  getUnsigned, getForeignKey, ForeignKeyOption
 } from "../decorators/index.js";
 import {MigrationFileBuilder} from "../models/index.js";
 
@@ -83,220 +83,256 @@ export function createMigration(name: string, migrationLocationPath: string, cla
 
   if (version === 0) {
     console.log("• Creating migration file...");
+      
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
+    const upQueries: string[] = [];
+    const downQueries: string[] = [];
 
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", "// First migration plan starts from empty database, down should mean destroy database. Database not empty? Use rebase function for integration of existing database to the migration flow.");
+    for (const table of Object.keys(schema)) {
+      downQueries.push(`DROP TABLE ${table}`);
+      
+      const tableSchema = schema[table]?.columns;
+      if (tableSchema === undefined) {
+        continue;
+      }
 
-    let uplogic = '';
-    Object.keys(schema)
-      .forEach((table, index) => {
-        if (index != 0) {
-          uplogic += `\n\n        `;
+      const columnSql: string[] = [];
+      const primaryColumns: string[] = [];
+      const uniqueColumns: string[] = [];
+      const foreignKeys: { table: string, column: string, sourceColumn: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption }[] = [];
+      for (const column of Object.keys(tableSchema)) {
+        const data = tableSchema[column];
+        if (data == null) {
+          continue;
         }
-        uplogic += `const table_${index} = this._builder.addTable('${table}');\n`;
 
-        // @ts-ignore
-        Object.keys(schema[table].columns)
-          .forEach((column, cIndex) => {
-            if (cIndex !== 0) {
-              uplogic += `\n`
-            }
-            // @ts-ignore
-            const sColumn = schema[table].columns[column];
-            // @ts-ignore
-            uplogic += `        table_${index}.addColumn('${column}', '${sColumn.type}')`;
+        let sql = "";
+        sql += `${column} ${data.type}`;
+        if (data.unsigned) {
+          sql += ` UNSIGNED`;
+        }
+        sql += ` ${data.nullable ? 'NULL' : 'NOT NULL'}`;
+        if (data.defaultSql) {
+          sql += ` DEFAULT ${data.defaultSql}`;
+        }
+        if (data.autoIncrement) {
+          sql += ` AUTO_INCREMENT`;
+        }
+        columnSql.push(sql);
 
-            // @ts-ignore
-            if (sColumn.primary) {
-              uplogic += `.primary()`;
-            }
-            // @ts-ignore
-            if (sColumn.nullable) {
-              uplogic += `.nullable()`;
-            }
-            // @ts-ignore
-            if (sColumn.unique) {
-              uplogic += `.unique()`;
-            }
-            // @ts-ignore
-            if (sColumn.unsigned) {
-              uplogic += `.unsigned()`;
-            }
-            // @ts-ignore
-            if (sColumn.autoIncrement) {
-              uplogic += `.autoIncrement()`;
-            }
-            // @ts-ignore
-            if ((sColumn.defaultSql ?? "").trim().length > 0) {
-              // @ts-ignore
-              uplogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
-            }
-            if (sColumn?.foreignKey !== null) {
-              // @ts-ignore
-              uplogic += `.foreignKey('${sColumn.foreignKey.table}', '${sColumn.foreignKey.column}', ${sColumn.foreignKey.onDelete}, ${sColumn.foreignKey.onUpdate})`;
-            }
-            uplogic += `;`;
-          });
+        if (data.primary) {
+          primaryColumns.push(column);
+        }
+        if (data.unique) {
+          uniqueColumns.push(column);
+        }
+        if (data.foreignKey) {
+          foreignKeys.push({column: data.foreignKey.column, table: data.foreignKey.table, sourceColumn: column, onDelete: data.foreignKey.onDelete, onUpdate: data.foreignKey.onUpdate});
+        }
+      }
 
-        uplogic += `\n\n        table_${index}.commit();`;
-      });
-    uplogic += `\n\n        await this._builder.execute();`;
+      if (primaryColumns.length > 0) {
+        columnSql.push(`PRIMARY KEY (${primaryColumns.join(', ')})`);
+      }
 
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
+      for (const uniqueColumn of uniqueColumns) {
+        columnSql.push(`UNIQUE INDEX ${uniqueColumn}_UNIQUE (${uniqueColumn} ASC) VISIBLE`);
+      }
+
+      for (const key of foreignKeys) {
+        let onDeleteAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
+        let onUpdateAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
+
+        switch (key.onDelete) {
+          case ForeignKeyOption.SetNull:
+            onDeleteAction = "SET NULL";
+            break;
+          case ForeignKeyOption.Restrict:
+            onDeleteAction = "RESTRICT";
+            break;
+          case ForeignKeyOption.Cascade:
+            onDeleteAction = "CASCADE";
+            break;
+        }
+
+        switch (key.onUpdate) {
+          case ForeignKeyOption.SetNull:
+            onUpdateAction = "SET NULL";
+            break;
+          case ForeignKeyOption.Restrict:
+            onUpdateAction = "RESTRICT";
+            break;
+          case ForeignKeyOption.Cascade:
+            onUpdateAction = "CASCADE";
+            break;
+        }
+
+        columnSql.push(`INDEX \`fk_${key.table}_${key.column}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+        columnSql.push(`CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+      }
+
+      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
+      upQueries.push(sql);
+    }
+    
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", upQueries.map(q => `this._builder.addQuery('${q}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downQueries.map(q => `this._builder.addQuery('${q}');`).join("\n"));
 
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
     fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
     console.log("• Migration file created.");
   } else {
-    console.log("• Creating migration file...");
-    let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
-
-    let downlogic = ''; // TODO Create up logic
-    let uplogic = ''; // TODO Create up logic
-
-    if (isEqual(oldSchema, schema)) {
-      const oldSchemaTables = Object.keys(oldSchema);
-      const schemaTables = Object.keys(schema);
-
-      const addedTables = schemaTables.filter(t => oldSchemaTables.indexOf(t) < 0);
-      const removedTables = oldSchemaTables.filter(t => schemaTables.indexOf(t) < 0);
-      const existingTables = schemaTables.filter(t => !addedTables.concat(removedTables)
-        .includes(t));
-
-      let isFirstEntry = true;
-      let tIndex = 0;
-
-      (addedTables ?? []).forEach((table) => {
-        if (!isFirstEntry) {
-          uplogic += `\n\n        `;
-          downlogic += `\n\n        `;
-        } else {
-          isFirstEntry = false;
-        }
-
-        uplogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
-
-        // @ts-ignore
-        Object.keys(schema[table].columns)
-          .forEach((column, cIndex) => {
-            if (cIndex !== 0) {
-              uplogic += `\n`
-            }
-            // @ts-ignore
-            const sColumn = schema[table].columns[column];
-            // @ts-ignore
-            uplogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
-
-            // @ts-ignore
-            if (sColumn.primary) {
-              uplogic += `.primary()`;
-            }
-            // @ts-ignore
-            if (sColumn.nullable) {
-              uplogic += `.nullable()`;
-            }
-            // @ts-ignore
-            if (sColumn.unique) {
-              uplogic += `.unique()`;
-            }
-            // @ts-ignore
-            if (sColumn.unsigned) {
-              uplogic += `.unsigned()`;
-            }
-            // @ts-ignore
-            if (sColumn.autoIncrement) {
-              uplogic += `.autoIncrement()`;
-            }
-            // @ts-ignore
-            if ((sColumn.defaultSql ?? "").trim().length > 0) {
-              // @ts-ignore
-              uplogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
-            }
-            if (sColumn?.foreignKey !== null) {
-              // @ts-ignore
-              uplogic += `.foreignKey('${sColumn.foreignKey.table}', '${sColumn.foreignKey.column}', ${sColumn.foreignKey.onDelete}, ${sColumn.foreignKey.onUpdate})`;
-            }
-            uplogic += `;`;
-          });
-
-        downlogic += `this._builder.dropTable('${table}')`;
-
-        tIndex += 1;
-      });
-
-      (removedTables ?? []).forEach((table) => {
-        if (!isFirstEntry) {
-          uplogic += `\n\n        `;
-          downlogic += `\n\n        `;
-        } else {
-          isFirstEntry = false;
-        }
-
-        downlogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
-
-        // @ts-ignore
-        Object.keys(oldSchema[table].columns)
-          .forEach((column, cIndex) => {
-            if (cIndex !== 0) {
-              downlogic += `\n`
-            }
-            // @ts-ignore
-            const sColumn = oldSchema[table].columns[column];
-            // @ts-ignore
-            downlogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
-
-            // @ts-ignore
-            if (sColumn.primary) {
-              downlogic += `.primary()`;
-            }
-            // @ts-ignore
-            if (sColumn.nullable) {
-              downlogic += `.nullable()`;
-            }
-            // @ts-ignore
-            if (sColumn.unique) {
-              downlogic += `.unique()`;
-            }
-            // @ts-ignore
-            if (sColumn.unsigned) {
-              downlogic += `.unsigned()`;
-            }
-            // @ts-ignore
-            if (sColumn.autoIncrement) {
-              downlogic += `.autoIncrement()`;
-            }
-            // @ts-ignore
-            if ((sColumn.defaultSql ?? "").trim().length > 0) {
-              // @ts-ignore
-              downlogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
-            }
-            if (sColumn?.foreignKey !== null) {
-              // @ts-ignore
-              uplogic += `.foreignKey('${sColumn.foreignKey.table}', '${sColumn.foreignKey.column}', ${sColumn.foreignKey.onDelete}, ${sColumn.foreignKey.onUpdate})`;
-            }
-            downlogic += `;`;
-          });
-
-        uplogic += `this._builder.dropTable('${table}')`;
-
-        tIndex += 1;
-      });
-
-      if (uplogic.trim().length > 0) {
-        uplogic += `\n\n        this._builder.execute();`;
-      }
-      if (downlogic.trim().length > 0) {
-        downlogic += `\n\n        this._builder.execute();`;
-      }
-    } else {
-      console.log("⚠ Schema has no differences. Creating empty migration file...");
-    }
-
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downlogic);
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
-
-    mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
-    fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
+    // A schema exists!
+    
+    // console.log("• Creating migration file...");
+    // let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
+    //
+    // let downlogic = ''; // TODO Create up logic
+    // let uplogic = ''; // TODO Create up logic
+    //
+    // if (isEqual(oldSchema, schema)) {
+    //   const oldSchemaTables = Object.keys(oldSchema);
+    //   const schemaTables = Object.keys(schema);
+    //
+    //   const addedTables = schemaTables.filter(t => oldSchemaTables.indexOf(t) < 0);
+    //   const removedTables = oldSchemaTables.filter(t => schemaTables.indexOf(t) < 0);
+    //   const existingTables = schemaTables.filter(t => !addedTables.concat(removedTables)
+    //     .includes(t));
+    //
+    //   let isFirstEntry = true;
+    //   let tIndex = 0;
+    //
+    //   (addedTables ?? []).forEach((table) => {
+    //     if (!isFirstEntry) {
+    //       uplogic += `\n\n        `;
+    //       downlogic += `\n\n        `;
+    //     } else {
+    //       isFirstEntry = false;
+    //     }
+    //
+    //     uplogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
+    //
+    //     // @ts-ignore
+    //     Object.keys(schema[table].columns)
+    //       .forEach((column, cIndex) => {
+    //         if (cIndex !== 0) {
+    //           uplogic += `\n`
+    //         }
+    //         // @ts-ignore
+    //         const sColumn = schema[table].columns[column];
+    //         // @ts-ignore
+    //         uplogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
+    //
+    //         // @ts-ignore
+    //         if (sColumn.primary) {
+    //           uplogic += `.primary()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.nullable) {
+    //           uplogic += `.nullable()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.unique) {
+    //           uplogic += `.unique()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.unsigned) {
+    //           uplogic += `.unsigned()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.autoIncrement) {
+    //           uplogic += `.autoIncrement()`;
+    //         }
+    //         // @ts-ignore
+    //         if ((sColumn.defaultSql ?? "").trim().length > 0) {
+    //           // @ts-ignore
+    //           uplogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
+    //         }
+    //         if (sColumn?.foreignKey !== null) {
+    //           // @ts-ignore
+    //           uplogic += `.foreignKey('${sColumn.foreignKey.table}', '${sColumn.foreignKey.column}', ${sColumn.foreignKey.onDelete}, ${sColumn.foreignKey.onUpdate})`;
+    //         }
+    //         uplogic += `;`;
+    //       });
+    //
+    //     downlogic += `this._builder.dropTable('${table}')`;
+    //
+    //     tIndex += 1;
+    //   });
+    //
+    //   (removedTables ?? []).forEach((table) => {
+    //     if (!isFirstEntry) {
+    //       uplogic += `\n\n        `;
+    //       downlogic += `\n\n        `;
+    //     } else {
+    //       isFirstEntry = false;
+    //     }
+    //
+    //     downlogic += `const table_${tIndex} = this._builder.addTable('${table}');\n`;
+    //
+    //     // @ts-ignore
+    //     Object.keys(oldSchema[table].columns)
+    //       .forEach((column, cIndex) => {
+    //         if (cIndex !== 0) {
+    //           downlogic += `\n`
+    //         }
+    //         // @ts-ignore
+    //         const sColumn = oldSchema[table].columns[column];
+    //         // @ts-ignore
+    //         downlogic += `        table_${tIndex}.addColumn('${column}', '${sColumn.type}')`;
+    //
+    //         // @ts-ignore
+    //         if (sColumn.primary) {
+    //           downlogic += `.primary()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.nullable) {
+    //           downlogic += `.nullable()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.unique) {
+    //           downlogic += `.unique()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.unsigned) {
+    //           downlogic += `.unsigned()`;
+    //         }
+    //         // @ts-ignore
+    //         if (sColumn.autoIncrement) {
+    //           downlogic += `.autoIncrement()`;
+    //         }
+    //         // @ts-ignore
+    //         if ((sColumn.defaultSql ?? "").trim().length > 0) {
+    //           // @ts-ignore
+    //           downlogic += `.defaultSql('${sColumn.defaultSql.replaceAll('\'', '\\\'')}')`;
+    //         }
+    //         if (sColumn?.foreignKey !== null) {
+    //           // @ts-ignore
+    //           uplogic += `.foreignKey('${sColumn.foreignKey.table}', '${sColumn.foreignKey.column}', ${sColumn.foreignKey.onDelete}, ${sColumn.foreignKey.onUpdate})`;
+    //         }
+    //         downlogic += `;`;
+    //       });
+    //
+    //     uplogic += `this._builder.dropTable('${table}')`;
+    //
+    //     tIndex += 1;
+    //   });
+    //
+    //   if (uplogic.trim().length > 0) {
+    //     uplogic += `\n\n        this._builder.execute();`;
+    //   }
+    //   if (downlogic.trim().length > 0) {
+    //     downlogic += `\n\n        this._builder.execute();`;
+    //   }
+    // } else {
+    //   console.log("⚠ Schema has no differences. Creating empty migration file...");
+    // }
+    //
+    // migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-DOWN}}}}", downlogic);
+    // migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA-UP}}}}", uplogic);
+    //
+    // mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
+    // fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
     console.log("• Migration file created.");
   }
 
