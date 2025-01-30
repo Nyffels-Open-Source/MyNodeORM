@@ -52,8 +52,7 @@ export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignK
 export enum ForeignKeyOption {
   Restrict = 0,
   Cascade = 1,
-  SetNull = 2,
-  NoAction = 3
+  SetNull = 2
 }
 
 export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {

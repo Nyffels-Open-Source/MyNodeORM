@@ -79,19 +79,7 @@ if (args.includes("--create-config")) {
 
       const [columns] = await connection.query(`DESCRIBE ${table};`);
       const [indexes] = await connection.query(`SHOW INDEXES FROM ${table};`);
-      const [keys] = await connection.query(`SELECT i.CONSTRAINT_NAME,
-                                                    i.TABLE_NAME,
-                                                    k.COLUMN_NAME,
-                                                    k.REFERENCED_TABLE_NAME,
-                                                    k.REFERENCED_COLUMN_NAME,
-                                                    r.UPDATE_RULE,
-                                                    r.DELETE_RULE
-                                             FROM information_schema.TABLE_CONSTRAINTS i
-                                                      LEFT JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME
-                                                      LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON i.CONSTRAINT_NAME = r.CONSTRAINT_NAME
-                                             WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY'
-                                               AND i.TABLE_NAME = '${table}'
-                                               AND i.TABLE_SCHEMA = DATABASE();`);
+      const [keys] = await connection.query(`SELECT i.CONSTRAINT_NAME, i.TABLE_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE FROM information_schema.TABLE_CONSTRAINTS i LEFT JOIN information_schema.KEY_COLUMN_USAGE k ON i.CONSTRAINT_NAME = k.CONSTRAINT_NAME LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON i.CONSTRAINT_NAME = r.CONSTRAINT_NAME WHERE i.CONSTRAINT_TYPE = 'FOREIGN KEY' AND i.TABLE_NAME = '${table}' AND i.TABLE_SCHEMA = DATABASE();`);
       for (const column of (columns as { Field: string; Type: string, Null: "YES" | "NO", Key: "PRI" | "UNI" | "MUL", Default: string, Extra: string }[])) {
         const index = (indexes as { Table: string; Non_unique: boolean; Key_name: string; Seq_in_index: boolean; Column_name: string; Null: string, Visible: "YES" | "NO" }[]).filter(e => e.Column_name == column.Field);
         const isUnique = !!index.find(e => !e.Non_unique && e.Key_name != "PRIMARY");
@@ -108,8 +96,8 @@ if (args.includes("--create-config")) {
           foreignKey: foreignKey ? {
             table: foreignKey.REFERENCED_TABLE_NAME,
             column: foreignKey.REFERENCED_COLUMN_NAME,
-            onDelete: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption,
-            onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "NO ACTION": ForeignKeyOption.NoAction, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption
+            onDelete: {"CASCADE": ForeignKeyOption.Cascade, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.DELETE_RULE] as ForeignKeyOption,
+            onUpdate: {"CASCADE": ForeignKeyOption.Cascade, "SET NULL": ForeignKeyOption.SetNull, "RESTRICT": ForeignKeyOption.Restrict}[foreignKey.UPDATE_RULE] as ForeignKeyOption
           } : null,
         }
       }
@@ -214,9 +202,6 @@ if (args.includes("--create-config")) {
           case ForeignKeyOption.Cascade:
             onDeleteAction = "CASCADE";
             break;
-          case ForeignKeyOption.NoAction:
-            onDeleteAction = "NO ACTION";
-            break;
         }
 
         switch (key.onUpdate) {
@@ -228,9 +213,6 @@ if (args.includes("--create-config")) {
             break;
           case ForeignKeyOption.Cascade:
             onUpdateAction = "CASCADE";
-            break;
-          case ForeignKeyOption.NoAction:
-            onUpdateAction = "NO ACTION";
             break;
         }
 
