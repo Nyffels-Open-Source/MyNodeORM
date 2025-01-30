@@ -189,8 +189,8 @@ if (args.includes("--create-config")) {
       }
 
       for (const key of foreignKeys) {
-        let onDeleteAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION' = "NO ACTION";
-        let onUpdateAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION' = "NO ACTION";
+        let onDeleteAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
+        let onUpdateAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
 
         switch (key.onDelete) {
           case ForeignKeyOption.SetNull:
@@ -234,6 +234,8 @@ if (args.includes("--create-config")) {
       const addedUniqColumns: string[] = [];
       const deletedUniqColumns: string[] = []
       let redoPrimary = false;
+      const dropkeys: string[] = [];
+      const addedKeys: { table: string, column: string, sourceColumn: string, onDelete: ForeignKeyOption, onUpdate: ForeignKeyOption }[] = [];
 
       if (dbTableSchema === undefined || migrationTableSchema === undefined) {
         continue;
@@ -278,6 +280,16 @@ if (args.includes("--create-config")) {
 
           if (data.unique) {
             addedUniqColumns.push(column);
+          }
+          
+          if (data.foreignKey) {
+            addedKeys.push({
+              column: data.foreignKey.column,
+              table: data.foreignKey.table,
+              sourceColumn: column, 
+              onDelete: data.foreignKey.onDelete, 
+              onUpdate: data.foreignKey.onUpdate
+            })
           }
         }
       }
@@ -391,37 +403,54 @@ if (args.includes("--create-config")) {
           lines.push(`ADD UNIQUE INDEX ${column}_UNIQUE (${column} ASC) VISIBLE`);
         }
       }
+      
+      if (dropkeys.length > 0) {
+        // TODO Seperate ALTER with drops!
+        /*
+          ALTER TABLE `doffice`.`tbl_account_number` 
+          DROP FOREIGN KEY `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`,
+          DROP INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx`;
+         */
+      }
+      
+      if (addedKeys.length > 0) {
+        for (const key of addedKeys) {
+          let onDeleteAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
+          let onUpdateAction: 'CASCADE' | 'SET NULL' | 'RESTRICT' = "CASCADE";
+
+          switch (key.onDelete) {
+            case ForeignKeyOption.SetNull:
+              onDeleteAction = "SET NULL";
+              break;
+            case ForeignKeyOption.Restrict:
+              onDeleteAction = "RESTRICT";
+              break;
+            case ForeignKeyOption.Cascade:
+              onDeleteAction = "CASCADE";
+              break;
+          }
+
+          switch (key.onUpdate) {
+            case ForeignKeyOption.SetNull:
+              onUpdateAction = "SET NULL";
+              break;
+            case ForeignKeyOption.Restrict:
+              onUpdateAction = "RESTRICT";
+              break;
+            case ForeignKeyOption.Cascade:
+              onUpdateAction = "CASCADE";
+              break;
+          }
+
+          lines.push(`ADD INDEX \`fk_${key.table}_${key.column}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+          lines.push(`ADD CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+        }
+      }
+      
       if (lines.length > 0) {
         scriptLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`);
       }
     }
-
-    // Foreign key naming scheme => FK_ChildTable_childColumn_ParentTable_parentColumn
-    // TODO Create
-    /*
-    ALTER TABLE `doffice`.`tbl_account_number` 
-    ADD INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx` (`subscriber_id` ASC) VISIBLE;
-    ;
-    ALTER TABLE `doffice`.`tbl_account_number` 
-    ADD CONSTRAINT `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`
-      FOREIGN KEY (`subscriber_id`)
-      REFERENCES `doffice`.`tbl_subscriber` (`subscriber_id`)
-      ON DELETE NO ACTION
-      ON UPDATE NO ACTION;
-     */
-
-    // TODO Delete 
-    /*
-    ALTER TABLE `doffice`.`tbl_account_number` 
-    DROP FOREIGN KEY `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscriber_id`;
-    ALTER TABLE `doffice`.`tbl_account_number` 
-    DROP INDEX `FK_tbl_account_number_subscriber_id_tbl_subscriber_subscrib_idx` ;
-    ;
-     */
-
-    // TODO Modify
-    // Drop first 
-    // Add later
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
     scriptLines.push(`CREATE TABLE __myNodeORM (version VARCHAR(36) NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
