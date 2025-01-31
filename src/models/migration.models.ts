@@ -1,5 +1,3 @@
-import {ForeignKeyOption} from "../decorators/index.js";
-
 export abstract class MigrationFileBuilder {
     public static GetFileTemplate() {
         return `import {MigrationBuilder} from '@nyffels/mynodeorm';

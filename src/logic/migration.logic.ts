@@ -14,9 +14,9 @@ import {
   getSqlType,
   getType,
   getUnique,
-  getUnsigned, getForeignKey, ForeignKeyOption, table
+  getUnsigned, getForeignKey
 } from "../decorators/index.js";
-import {MigrationFileBuilder} from "../models/index.js";
+import {ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 
 export function createMigration(name: string, migrationLocationPath: string, classes: any[]) {
   if (!name) {
@@ -34,18 +34,20 @@ export function createMigration(name: string, migrationLocationPath: string, cla
   const folders = fs.readdirSync(migrationLocation, {withFileTypes: true})
     .filter(f => f.isDirectory())
     .map(f => f.name);
-  
+
   let version = 0;
   const migrationName = `${version}.${getDateFormat()}_${name}`;
-  
+
   let oldSchema!: Schema;
   if ((folders).length > 0) {
     // @ts-ignore
     version = (folders.map(f => +f.split(".")[0])
       .sort()
       .reverse()[0]) + 1;
-    
-    oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (folders.sort().reverse().find(x => x) ?? ""), "schema.json"))
+
+    oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (folders.sort()
+      .reverse()
+      .find(x => x) ?? ""), "schema.json"))
       .toString());
   }
 
@@ -87,11 +89,11 @@ export function createMigration(name: string, migrationLocationPath: string, cla
 
   if (version === 0) {
     console.log("• Creating migration file...");
-      
+
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
     const queryLines: string[] = [];
 
-    for (const table of Object.keys(schema)) {      
+    for (const table of Object.keys(schema)) {
       const tableSchema = schema[table]?.columns;
       if (tableSchema === undefined) {
         continue;
@@ -172,11 +174,15 @@ export function createMigration(name: string, migrationLocationPath: string, cla
         columnSql.push(`CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
+      const sql = `CREATE TABLE ${table}
+                   (
+                       ${columnSql.join(', ')}
+                   );`;
       queryLines.push(sql);
     }
-    
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
+
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`)
+      .join("\n"));
     migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
 
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
@@ -186,7 +192,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
     console.log("• Creating migration file...");
     let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
     const queryLines: string[] = [];
-    
+
     const newTables = Object.keys(schema);
     const oldTables = Object.keys(oldSchema);
 
@@ -279,7 +285,10 @@ export function createMigration(name: string, migrationLocationPath: string, cla
         columnSql.push(`CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
+      const sql = `CREATE TABLE ${table}
+                   (
+                       ${columnSql.join(', ')}
+                   );`;
       queryLines.push(sql);
     }
 
@@ -460,11 +469,11 @@ export function createMigration(name: string, migrationLocationPath: string, cla
         for (const column of Object.keys(oldSchema[table].columns)) {
           // @ts-ignore
           if (oldSchema[table].columns[column].primary) {
-            indexExists = true; 
+            indexExists = true;
             break;
           }
         }
-        
+
         if (indexExists) {
           lines.push("DROP PRIMARY KEY");
         }
@@ -486,7 +495,8 @@ export function createMigration(name: string, migrationLocationPath: string, cla
       }
 
       if (dropkeys.length > 0) {
-        queryLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``).join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
+        queryLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``)
+                .join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
       }
 
       if (addedKeys.length > 0) {
@@ -528,7 +538,8 @@ export function createMigration(name: string, migrationLocationPath: string, cla
       }
     }
 
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`)
+      .join("\n"));
     migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
 
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});

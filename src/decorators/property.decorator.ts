@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {propertyType} from "../models/index.js";
+import {ForeignKeyOption, propertyType} from "../models/index.js";
 import {Factory} from "../models/index.js";
 import {getTable} from "./class.decorator.js"
 
@@ -47,12 +47,6 @@ export function defaultSql(sql: string) {
 
 export function foreignKey<T>(table: object, column: keyof T, onDelete: ForeignKeyOption = ForeignKeyOption.Restrict, onUpdate: ForeignKeyOption = ForeignKeyOption.Restrict) {  
   return Reflect.metadata(foreignKeyMetaDatakey, JSON.stringify({table: getTable(table), column: getColumn<T>(table, column), onDelete, onUpdate}));
-}
-
-export enum ForeignKeyOption {
-  Restrict = 0,
-  Cascade = 1,
-  SetNull = 2
 }
 
 export function getColumn<T>(sourceObject: Object, propertyKey: keyof T) {

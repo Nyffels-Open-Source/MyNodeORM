@@ -4,8 +4,8 @@ import * as fs from "node:fs";
 import {Schema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
-import {isEqual, uniq} from "lodash-es";
-import {ForeignKeyOption} from "./decorators/index.js";
+import {uniq} from "lodash-es";
+import {ForeignKeyOption} from "./models/index.js";
 
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);

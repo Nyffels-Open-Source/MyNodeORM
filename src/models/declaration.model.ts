@@ -3,7 +3,6 @@ import {propertyType} from "./property.models.js";
 
 export class DatabaseDeclaration {
   private _name: string;
-  private _schema = {};
 
   constructor(name: string = "default") {
     this._name = name;
