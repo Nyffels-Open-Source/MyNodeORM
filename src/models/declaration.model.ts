@@ -30,12 +30,20 @@ export abstract class DeclarationStorage {
 
     const factory = new Factory();
     const targetClass: any = factory.create(classObject as any);
-    return declaration.declaration.getTable(targetClass.constructor.name);
+    const table = declaration.declaration.getTable(targetClass.constructor.name);
+    if (!table) {
+      throw new Error(`Declaration ${declarationName} with table name ${targetClass.constructor.name} not found`);
+    }
+    return table;
   }
 
-  static getColumn(classObject: object, property: string, declarationName = "default") {    
+  static getColumn<T = any>(classObject: object, property: string, declarationName = "default"): DatabaseColumn<T> {    
     const table = this.getTable(classObject, declarationName);
-    return table.getColumn(property);
+    const column = table.getColumn(property)
+    if (!column) {
+      throw new Error(`Declaration ${declarationName} with column ${property} not found`);
+    }
+    return column;
   }
 
   private constructor() {}
@@ -53,16 +61,16 @@ export class DatabaseDeclaration {
     return this._tables;
   }
   
-  getTable(name: string) {
+  getTable<T = any>(name: string) {
     const table = this._tables.find(t => t.name === name);
     if (!table) {
       throw new Error(`Table with name ${name} not found`);
     }
-    return table;
+    return table as DatabaseTable<T>;
   }
 
-  constructor(name: string = "default") {
-    this._name = name;
+  constructor(/* name: string = "default" // We currently restrict the library to one connection. the groundwork for multi declarations is laid, but not implemented compeletely. */) {
+    this._name = "default"; // name => See text above;
     DeclarationStorage.add(this);
   }
 
@@ -83,7 +91,7 @@ class DatabaseTable<T> {
   private _name: string;
   private _columns!: DatabaseColumnCollection<T>;
 
-  get columns() {
+  getColumns() {
     return this._columns;
   }
   

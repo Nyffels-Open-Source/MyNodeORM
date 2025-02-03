@@ -1,6 +1,7 @@
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic/index.js";
 import {Factory} from "./factory.models.js";
 import {isNil, isArray, uniq} from "lodash-es";
+import {DeclarationStorage} from "./declaration.model.js";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -31,16 +32,8 @@ export class QueryBuilder<T> {
    * Create a querybuilder for easy and fast query building based on the decoration methode for links between class properties and database columns
    * @param classobject The object with the decorators
    */
-  constructor(classobject: object | string) {
-    if (typeof classobject === "string") {
-      const object = getObjectById(classobject);
-      if (object === null) {
-        throw new Error("No object found that matches " + classobject + "!");
-      }
-      this._classobject = getObjectById(classobject) as object;
-    } else {
-      this._classobject = classobject;
-    }
+  constructor(classobject: object) {
+    this._classobject = classobject;
   }
 
   /* Builders */
@@ -54,15 +47,15 @@ export class QueryBuilder<T> {
         this._selectQueryString = "*";
         return this;
       } else {
-        properties = getAllProperties<T>(this._classobject);
+        properties = Object.keys(DeclarationStorage.getTable<T>(this._classobject).getColumns()) as (keyof T | SelectValue<T>)[];
       }
     }
 
     const columns = properties.map(p => {
       if ((typeof p) === "string") {
 
-        const column = getColumn(this._classobject, p as string);
-        const table = getTable(this._classobject);
+        const column = DeclarationStorage.getColumn(this._classobject, p as string).getDbName();
+        const table = DeclarationStorage.getTable(this._classobject).getDbName();
 
         if (isNil(column)) {
           return "";
@@ -76,9 +69,9 @@ export class QueryBuilder<T> {
             throw new Error('Incorrect selectValue object');
           }
 
-          const classobject = (p as SelectValue<T>).table && typeof (p as SelectValue<T>).table === "string" ? getObjectById((p as SelectValue<T>).table as string) : (p as SelectValue<T>).table;
-          const table = getTable(classobject ?? this._classobject);
-          const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property);
+          const classobject = (p as SelectValue<T>).table;
+          const table = DeclarationStorage.getTable(classobject ?? this._classobject).getDbName();
+          const column = DeclarationStorage.getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property as string).getDbName();
 
           if (isNil(column)) {
             return "";
@@ -125,7 +118,7 @@ export class QueryBuilder<T> {
    */
   public sum(field: (keyof T)) {
     this._queryType = "SELECT";
-    this._selectQueryString = `SUM(${getColumn(this._classobject, field)}) as sum`;
+    this._selectQueryString = `SUM(${DeclarationStorage.getColumn(this._classobject, field as string).getDbName()}) as sum`;
     this._isSum = true;
     this.single();
     return this;
@@ -137,7 +130,7 @@ export class QueryBuilder<T> {
    */
   public min(field: (keyof T)) {
     this._queryType = "SELECT";
-    this._selectQueryString = `MIN(${getColumn(this._classobject, field)}) as min`;
+    this._selectQueryString = `MIN(${DeclarationStorage.getColumn(this._classobject, field as string).getDbName()}) as min`;
     this._isMin = true;
     this.single();
     return this;
@@ -149,7 +142,7 @@ export class QueryBuilder<T> {
    */
   public max(field: (keyof T)) {
     this._queryType = "SELECT";
-    this._selectQueryString = `MAX(${getColumn(this._classobject, field)}) as max`;
+    this._selectQueryString = `MAX(${DeclarationStorage.getColumn(this._classobject, field as string).getDbName()}) as max`;
     this._isMax = true;
     this.single();
     return this;
@@ -161,7 +154,7 @@ export class QueryBuilder<T> {
    */
   public avg(field: (keyof T)) {
     this._queryType = "SELECT";
-    this._selectQueryString = `AVG(${getColumn(this._classobject, field)}) as avg`;
+    this._selectQueryString = `AVG(${DeclarationStorage.getColumn(this._classobject, field as string).getDbName()}) as avg`;
     this._isAvg = true;
     this.single();
     return this;
@@ -183,7 +176,7 @@ export class QueryBuilder<T> {
     const targetClass = factory.create(this._classobject as any);
 
     const properties: string[] = onlyIncludeSourceProperties ? Object.keys((source as any[]).find(x => x)) : Object.keys(targetClass as any);
-    const columns = properties.map(p => getColumn(this._classobject, p));
+    const columns = properties.map(p => DeclarationStorage.getColumn(this._classobject, p).getDbName());
 
     const valuesFragments: string[] = [];
 
@@ -237,7 +230,7 @@ export class QueryBuilder<T> {
         continue;
       }
 
-      const column = getColumn(this._classobject, property);
+      const column = DeclarationStorage.getColumn(this._classobject, property).getDbName();
       const value = parseValue(this._classobject, property, (source as any)[property]);
       fragments.push(`${column} = ${value}`);
     }
@@ -295,11 +288,8 @@ export class QueryBuilder<T> {
    * @param property The property your query has to group by
    */
   public groupBy(property: string, table?: any | string) {
-    const columnQuery = getColumn(this._classobject, property);
-    if (table && typeof table === "string") {
-      table = getObjectById(table);
-    }
-    const tableQuery = getTable(table ?? this._classobject);
+    const columnQuery = DeclarationStorage.getColumn(this._classobject, property).getDbName();
+    const tableQuery = DeclarationStorage.getTable(table ?? this._classobject).getDbName();
 
     this._groupByValue = `${tableQuery}.${columnQuery}`;
     return this;
@@ -312,22 +302,26 @@ export class QueryBuilder<T> {
    */
   public orderBy(properties: (keyof T) | (keyof T)[] | OrderByValue<T>) {
     if (isArray(properties)) {
-      const columns = properties.map(p => getColumn(this._classobject, p));
+      const columns = properties.map(p => DeclarationStorage.getColumn(this._classobject, p as string).getDbName());
       this._orderByQueryString = `ORDER BY ${columns.join(', ')}`;
     } else if (typeof properties === 'object') {
       const cProperties = Object.keys(properties);
       this._orderByQueryString = `ORDER BY ${cProperties.map(prop => {
         const content = (properties as any)[prop];
-        let classobject = (properties as any)[prop].table && typeof (properties as any)[prop].table === "string" ? getObjectById((properties as any)[prop].table) : (properties as any)[prop].table ?? this._classobject;
+        let classobject = (properties as any)[prop].table ?? this._classobject;
         if (!isNil(content.table)) {
           classobject = content.table;
         }
-        return `${getTable(classobject as object)}.${getColumn(classobject as object, prop)} ${content.direction}`
+        return `${DeclarationStorage.getTable(classobject as object)
+          .getDbName()}.${DeclarationStorage.getColumn(classobject as object, prop)
+          .getDbName()} ${content.direction}`
       })
         .join(', ')}`;
     } else {
-      const table = getTable(this._classobject);
-      const column = [getColumn(this._classobject, properties as string)];
+      const table = DeclarationStorage.getTable(this._classobject)
+        .getDbName();
+      const column = [DeclarationStorage.getColumn(this._classobject, properties as string)
+        .getDbName()];
       this._orderByQueryString = `ORDER BY ${table}.${column}`;
     }
 
@@ -410,15 +404,16 @@ export class QueryBuilder<T> {
         let dbTable = "";
         let dbClassobject;
         if (!isNil(content.table)) {
-          if (typeof content.table === "string") {
-            content.table = getObjectById(content.table);
-          }
-          dbColumn = getColumn(content.table, property);
-          dbTable = getTable(content.table);
+          dbColumn = DeclarationStorage.getColumn(content.table, property)
+            .getDbName();
+          dbTable = DeclarationStorage.getTable(content.table)
+            .getDbName();
           dbClassobject = content.table;
         } else {
-          dbColumn = getColumn(this._classobject, property);
-          dbTable = getTable(this._classobject);
+          dbColumn = DeclarationStorage.getColumn(this._classobject, property)
+            .getDbName();
+          dbTable = DeclarationStorage.getTable(this._classobject)
+            .getDbName();
           dbClassobject = this._classobject;
         }
 
@@ -481,24 +476,23 @@ export class QueryBuilder<T> {
    */
   private generateSelectQuery() {
     let query = `SELECT ${this._selectQueryString ?? "*"}
-                 FROM ${getTable(this._classobject)}`;
+                 FROM ${DeclarationStorage.getTable(this._classobject)
+                         .getDbName()}`;
 
     for (const join of
       this._joins) {
-      query += ` ${join.type ?? "LEFT"} JOIN ${getTable(join.table)}`;
+      query += ` ${join.type ?? "LEFT"} JOIN ${DeclarationStorage.getTable(join.table)
+        .getDbName()}`;
       if (!isArray(join.on)) {
         join.on = [join.on];
       }
-      if (typeof join.table === "string") {
-        const obj = getObjectById(join.table);
-        if (obj === null) {
-          throw new Error("Cannot generate select query due to incorrect table reference at join.");
-        }
-        join.table = obj as object;
-      }
       for (const onValue of
         join.on) {
-        query += ` ON ${getTable(this._classobject)}.${getColumn(this._classobject, (onValue.sourceProperty as string))} = ${getTable(join.table)}.${getColumn(join.table, (onValue.targetProperty as string))}`;
+        query += ` ON ${DeclarationStorage.getTable(this._classobject)
+          .getDbName()}.${DeclarationStorage.getColumn(this._classobject, (onValue.sourceProperty as string))
+          .getDbName()} = ${DeclarationStorage.getTable(join.table)
+          .getDbName()}.${DeclarationStorage.getColumn(join.table, (onValue.targetProperty as string))
+          .getDbName()}`;
       }
     }
 
@@ -523,7 +517,8 @@ export class QueryBuilder<T> {
    * Generate a insert query.
    */
   private generateInsertQuery() {
-    return `INSERT INTO ${getTable(this._classobject)} ${this._insertQueryString}`;
+    return `INSERT INTO ${DeclarationStorage.getTable(this._classobject)
+            .getDbName()} ${this._insertQueryString}`;
   }
 
   /**
@@ -531,7 +526,8 @@ export class QueryBuilder<T> {
    */
   private generateDeleteQuery() {
     let query = `DELETE
-                 FROM ${getTable(this._classobject)}`;
+                 FROM ${DeclarationStorage.getTable(this._classobject)
+                         .getDbName()}`;
     query += `${this.convertWheregroupsToWhereString()}`;
     return query;
   }
@@ -540,7 +536,8 @@ export class QueryBuilder<T> {
    * Generate a update query
    */
   private generateUpdateQuery() {
-    let query = `UPDATE ${getTable(this._classobject)}
+    let query = `UPDATE ${DeclarationStorage.getTable(this._classobject)
+            .getDbName()}
                  SET ${this._updateQueryString}`;
     query += `${this.convertWheregroupsToWhereString()}`;
     return query;
@@ -594,7 +591,7 @@ export class QueryBuilder<T> {
 export class SelectValue<T> {
   public property!: keyof T;
   public alias?: string;
-  public table?: object | string
+  public table?: object;
 }
 
 /**
@@ -645,7 +642,7 @@ export type InsertValue<T> = {
  * A join value to join 2 tables.
  */
 export class JoinValue<source, target> {
-  table!: object | string;
+  table!: object;
   on!: joinOnValue<source, target> | joinOnValue<source, target>[];
   type?: "INNER" | "LEFT" | "RIGHT" | "CROSS" = "LEFT"
 }

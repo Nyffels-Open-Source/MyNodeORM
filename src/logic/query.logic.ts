@@ -1,4 +1,5 @@
-import {Factory} from "../models/index.js";
+import {DeclarationStorage, Factory} from "../models/index.js";
+import {isNil} from "lodash-es";
 
 /**
  * Convert a query result to an object.
@@ -19,27 +20,27 @@ export function queryResultToObject<T = any>(classObject: Object, results: any[]
   (results ?? []).forEach((r) => {
     const resultObject = factory.create(classObject as any) as any;
     classProperties.forEach((p) => {
-      const column = getColumn(classObject, p);
+      const column = DeclarationStorage.getColumn(classObject, p);
       if (column) {
-        const type = getType(classObject, p);
+        const type = column.getType().type;
 
         switch (type) {
           case 'number': {
-            resultObject[p] = !isNil(r[column]) ? +r[column] : null;
+            resultObject[p] = !isNil(r[column.getDbName()]) ? +r[column.getDbName()] : null;
             break;
           }
           case 'boolean': {
-            resultObject[p] = !isNil(r[column]) ? !!r[column] : null;
+            resultObject[p] = !isNil(r[column.getDbName()]) ? !!r[column.getDbName()] : null;
             break;
           }
           case 'date':
           case 'time':
           case 'datetime': {
-            resultObject[p] = !isNil(r[column]) ? new Date(r[column]) : null;
+            resultObject[p] = !isNil(r[column.getDbName()]) ? new Date(r[column.getDbName()]) : null;
             break;
           }
           default: {
-            resultObject[p] = !isNil(r[column]) ? '' + r[column] : null;
+            resultObject[p] = !isNil(r[column.getDbName()]) ? '' + r[column.getDbName()] : null;
             break;
           }
         }
