@@ -47,7 +47,7 @@ export class QueryBuilder<T> {
         this._selectQueryString = "*";
         return this;
       } else {
-        properties = Object.keys(DeclarationStorage.getTable<T>(this._classobject).getColumns()) as (keyof T | SelectValue<T>)[];
+        properties = Object.keys(DeclarationStorage.getTable<T>(this._classobject).columns) as (keyof T | SelectValue<T>)[];
       }
     }
 

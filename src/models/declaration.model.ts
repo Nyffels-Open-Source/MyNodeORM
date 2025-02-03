@@ -99,7 +99,7 @@ class DatabaseTable<T> {
   private _name: string;
   private _columns!: DatabaseColumnCollection<T>;
 
-  getColumns() {
+  get columns() {
     return this._columns;
   }
   
