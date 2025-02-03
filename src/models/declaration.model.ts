@@ -37,11 +37,11 @@ export abstract class DeclarationStorage {
     return table;
   }
 
-  static getColumn<T = any>(classObject: object, property: string, declarationName = "default"): DatabaseColumn<T> {    
+  static getColumn<T = any>(classObject: object, property: keyof T, declarationName = "default"): DatabaseColumn<T> {    
     const table = this.getTable(classObject, declarationName);
     const column = table.getColumn(property)
     if (!column) {
-      throw new Error(`Declaration ${declarationName} with column ${property} not found`);
+      throw new Error(`Declaration ${declarationName} with column ${property as string} not found`);
     }
     return column;
   }
@@ -53,7 +53,7 @@ export function getTable(classObject: object, declarationName = "default"): stri
   return DeclarationStorage.getTable(classObject, declarationName).getDbName();
 }
 
-export function getColumn(classObject: object, property: string, declarationName = "default"): string { 
+export function getColumn<T>(classObject: object, property: keyof T, declarationName = "default"): string { 
   return DeclarationStorage.getColumn(classObject, property, declarationName).getDbName();
 }
 
@@ -103,10 +103,10 @@ class DatabaseTable<T> {
     return this._columns;
   }
   
-  getColumn(name: string) {
+  getColumn(name: keyof T) {
     const column = this._columns[name as keyof T];
     if (!column) {
-      throw new Error(`column name ${name} not found`);
+      throw new Error(`column name ${name as string} not found`);
     }
     return column;
   }
