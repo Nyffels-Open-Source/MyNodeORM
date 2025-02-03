@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 import path from "node:path";
 import * as fs from "node:fs";
-import {Schema} from "./models/schema.models.js";
+import {DatabaseSchema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
 import {uniq} from "lodash-es";
@@ -70,7 +70,7 @@ if (args.includes("--create-config")) {
     });
 
     /* Build current state schema */
-    const schema: Schema = {};
+    const schema: DatabaseSchema = {};
 
     const [tablesRes] = await connection.query("SHOW TABLES;");
     const tables = (tablesRes as RowDataPacket[]).map(x => x[`Tables_in_${database}`]);
@@ -121,7 +121,7 @@ if (args.includes("--create-config")) {
       .find(x => x);
     
     const migrationSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (latestMigrationVersion ?? ""), "schema.json"))
-      .toString()) as Schema;
+      .toString()) as DatabaseSchema;
 
 
     if (migrationSchema === undefined) {

@@ -5,17 +5,8 @@ export async function setConnection() {
   if (!isNil((global as any).connection)) {
     return;
   }
-
-  (global as any).connection = await mysql.createConnection({
-    host: process.env["DBHN"],
-    user: process.env["DBUN"],
-    database: process.env["DBDB"],
-    password: process.env["DBPWD"],
-    port: +(process.env["DBPORT"] ?? 3306),
-    timezone: 'Z',
-    supportBigNumbers: true,
-    bigNumberStrings: false,
-  });
+ 
+  (global as any).connection = await mysql.createConnection(process.env["Database"] as string);
 }
 
 export function getConnection(skipNoConnectionError = true) {

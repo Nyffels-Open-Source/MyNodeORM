@@ -1,21 +1,8 @@
 import path from "node:path";
 import fs from "node:fs";
 import {mkdirSync} from "fs";
-import {isEqual, uniq} from "lodash-es";
-import {Schema} from "../models/schema.models.js";
-import {
-  getTable,
-  getAllProperties,
-  getAutoIncrement,
-  getColumn,
-  getDefaultSql,
-  getNullable,
-  getPrimary,
-  getSqlType,
-  getType,
-  getUnique,
-  getUnsigned, getForeignKey
-} from "../decorators/index.js";
+import {uniq} from "lodash-es";
+import {DatabaseSchema} from "../models/schema.models.js";
 import {ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 
 export function createMigration(name: string, migrationLocationPath: string, classes: any[]) {
@@ -38,7 +25,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
   let version = 0;
   const migrationName = `${version}.${getDateFormat()}_${name}`;
 
-  let oldSchema!: Schema;
+  let oldSchema!: DatabaseSchema;
   if ((folders).length > 0) {
     // @ts-ignore
     version = (folders.map(f => +f.split(".")[0])
@@ -52,7 +39,7 @@ export function createMigration(name: string, migrationLocationPath: string, cla
   }
 
   console.log("• Creating schema...");
-  const schema: Schema = {};
+  const schema: DatabaseSchema = {};
   for (const dbClass of classes) {
     const table = getTable(dbClass);
     if (!table) {

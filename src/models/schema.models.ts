@@ -1,12 +1,12 @@
 import {ForeignKeyOption} from "./declaration.model.js";
 
-export interface Schema {
+export interface DatabaseSchema {
   [table: string]: {
-    columns: SchemaColumn
+    columns: DatabaseSchemaColumn
   }
 }
 
-export interface SchemaColumn {
+export interface DatabaseSchemaColumn {
   [column: string]: {
     type: string;
     primary: boolean;

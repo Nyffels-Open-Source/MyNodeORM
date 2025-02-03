@@ -1,5 +1,4 @@
 import {isNil} from 'lodash-es';
-import {getType} from "../decorators/index.js";
 
 /**
  * Parse a string value to a MySQL safe value

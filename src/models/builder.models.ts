@@ -1,4 +1,3 @@
-import {getAllProperties, getColumn, getObjectById, getTable} from "../decorators/index.js";
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic/index.js";
 import {Factory} from "./factory.models.js";
 import {isNil, isArray, uniq} from "lodash-es";
