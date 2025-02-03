@@ -51,11 +51,19 @@ export abstract class DeclarationStorage {
 }
 
 export function getTable(classObject: object, declarationName = "default"): string {
-  return DeclarationStorage.getTable(classObject, declarationName).getDbName();
+  try {
+    return DeclarationStorage.getTable(classObject, declarationName).getDbName(); 
+  } catch {
+    return "";
+  }
 }
 
-export function getColumn<T>(classObject: object, property: keyof T, declarationName = "default"): string { 
-  return DeclarationStorage.getColumn(classObject, property, declarationName).getDbName();
+export function getColumn<T>(classObject: object, property: keyof T, declarationName = "default"): string {
+  try {
+    return DeclarationStorage.getColumn(classObject, property, declarationName).getDbName(); 
+  } catch {
+    return "";
+  } 
 }
 
 export class DatabaseDeclaration {

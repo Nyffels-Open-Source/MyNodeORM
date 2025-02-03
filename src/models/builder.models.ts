@@ -1,7 +1,7 @@
 import {doMutation, doQuery, parseValue, queryResultToObject} from "../logic/index.js";
 import {Factory} from "./factory.models.js";
 import {isNil, isArray, uniq} from "lodash-es";
-import {DeclarationStorage} from "./declaration.model.js";
+import {DeclarationStorage, getColumn, getTable} from "./declaration.model.js";
 
 /**
  * Build a query with a simple query builder using all the class decorations and wrapper logic available in this package.
@@ -70,10 +70,10 @@ export class QueryBuilder<T> {
           }
 
           const classobject = (p as SelectValue<T>).table;
-          const table = DeclarationStorage.getTable(classobject ?? this._classobject).getDbName();
-          const column = DeclarationStorage.getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property as string).getDbName();
+          const table = getTable(classobject ?? this._classobject);
+          const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property as string);
 
-          if (isNil(column)) {
+          if ((column ?? "").trim().length <= 0) {
             return "";
           }
 
