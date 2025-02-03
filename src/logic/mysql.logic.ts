@@ -1,12 +1,28 @@
 import {isNil} from 'lodash-es';
 import mysql, {Connection, ResultSetHeader} from 'mysql2/promise';
+import {DeclarationStorage} from "../models/index.js";
 
 export async function setConnection() {
   if (!isNil((global as any).connection)) {
     return;
   }
- 
-  (global as any).connection = await mysql.createConnection(process.env["Database"] as string);
+  
+  const declaration = DeclarationStorage.get().declaration;
+  if (!declaration) {
+    throw new Error("No declaration found.");
+  }
+  const options = declaration.getConnectionOptions();
+
+  (global as any).connection = await mysql.createConnection({
+    host: options.host,
+    user: options.user,
+    database: options.database,
+    password: options.password,
+    port: options.port ?? 3306,
+    timezone: 'Z',
+    supportBigNumbers: true,
+    bigNumberStrings: false,
+  });
 }
 
 export function getConnection(skipNoConnectionError = true) {

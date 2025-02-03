@@ -1,5 +1,6 @@
 import {Factory} from "./factory.models.js";
 import {propertyType} from "./property.models.js";
+import {Connection} from "mysql2/promise";
 
 export abstract class DeclarationStorage {
   static declarations: { name: string, declaration: DatabaseDeclaration }[] = [];
@@ -60,6 +61,7 @@ export function getColumn<T>(classObject: object, property: keyof T, declaration
 export class DatabaseDeclaration {
   private _name: string;
   private _tables: DatabaseTable<any>[] = [];
+  private _options: ConnectionOptions
 
   get name() {
     return this._name;
@@ -67,6 +69,10 @@ export class DatabaseDeclaration {
   
   get tables() {
     return this._tables;
+  }
+  
+  getConnectionOptions() {
+    return this._options;
   }
   
   getTable<T = any>(name: string) {
@@ -77,8 +83,9 @@ export class DatabaseDeclaration {
     return table as DatabaseTable<T>;
   }
 
-  constructor(/* name: string = "default" // We currently restrict the library to one connection. the groundwork for multi declarations is laid, but not implemented compeletely. */) {
+  constructor(options: ConnectionOptions /* name: string = "default" // We currently restrict the library to one connection. the groundwork for multi declarations is laid, but not implemented compeletely. */) {
     this._name = "default"; // name => See text above;
+    this._options = options;
     DeclarationStorage.add(this);
   }
 
@@ -254,4 +261,12 @@ export enum ForeignKeyOption {
   Restrict = 0,
   Cascade = 1,
   SetNull = 2
+}
+
+export interface ConnectionOptions {
+  host: string,
+  user: string,
+  database: string,
+  password: string,
+  port?: number,
 }
