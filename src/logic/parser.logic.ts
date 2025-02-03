@@ -1,4 +1,5 @@
 import {isNil} from 'lodash-es';
+import {DeclarationStorage} from "../models/index.js";
 
 /**
  * Parse a string value to a MySQL safe value
@@ -57,7 +58,7 @@ export function parseValue(sourceClass: any, property: string, value: any) {
     return value.value;
   }
 
-  switch (getType(sourceClass, property)) {
+  switch (DeclarationStorage.getColumn(sourceClass, property)?.getType().type) {
     case 'number':
       return parseNumber(value);
     case 'boolean':

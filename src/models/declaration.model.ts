@@ -1,7 +1,7 @@
 import {Factory} from "./factory.models.js";
 import {propertyType} from "./property.models.js";
 
-abstract class DeclarationStorage {
+export abstract class DeclarationStorage {
   static declarations: { name: string, declaration: DatabaseDeclaration }[] = [];
 
   static add(declaration: DatabaseDeclaration) {
@@ -13,6 +13,30 @@ abstract class DeclarationStorage {
       name: declaration.name, declaration
     });
   }
+  
+  static get(name: string = "default") {
+    const declaration = this.declarations.find(x => x.name === name);
+    if (!declaration) {
+      throw new Error(`Declaration with name ${name} not found`);
+    }
+    return declaration;
+  }
+
+  static getTable<T = any>(classObject: object, declarationName = "default"): DatabaseTable<T> {
+    const declaration = this.declarations.find(x => x.name === declarationName);
+    if (!declaration) {
+      throw new Error(`Declaration with name ${declarationName} not found`);
+    }
+
+    const factory = new Factory();
+    const targetClass: any = factory.create(classObject as any);
+    return declaration.declaration.getTable(targetClass.constructor.name);
+  }
+
+  static getColumn(classObject: object, property: string, declarationName = "default") {    
+    const table = this.getTable(classObject, declarationName);
+    return table.getColumn(property);
+  }
 
   private constructor() {}
 }
@@ -23,6 +47,18 @@ export class DatabaseDeclaration {
 
   get name() {
     return this._name;
+  }
+  
+  get tables() {
+    return this._tables;
+  }
+  
+  getTable(name: string) {
+    const table = this._tables.find(t => t.name === name);
+    if (!table) {
+      throw new Error(`Table with name ${name} not found`);
+    }
+    return table;
   }
 
   constructor(name: string = "default") {
@@ -44,14 +80,32 @@ export class DatabaseDeclaration {
 
 class DatabaseTable<T> {
   private _dbName: string;
+  private _name: string;
   private _columns!: DatabaseColumnCollection<T>;
 
   get columns() {
     return this._columns;
   }
+  
+  getColumn(name: string) {
+    const column = this._columns[name as keyof T];
+    if (!column) {
+      throw new Error(`column name ${name} not found`);
+    }
+    return column;
+  }
+  
+  get name() {
+    return this._name;
+  }
+
+  getDbName() {
+    return this._dbName;
+  }
 
   constructor(targetClass: any) {
     this._dbName = targetClass.constructor.name;
+    this._name = targetClass.constructor.name;
     this._columns = {} as DatabaseColumnCollection<T>;
     for (const column of Object.keys(targetClass)) {
       // @ts-ignore
@@ -87,40 +141,72 @@ class DatabaseColumn<T> {
     this._dbName = name;
     return this;
   }
+  
+  getDbName() {
+    return this._dbName;
+  }
 
   public type(type: propertyType, length: string | null = null) {
     this._type = {type, length};
     return this;
+  }
+  
+  getType() {
+    return this._type;
   }
 
   public primary() {
     this._primary = true;
     return this;
   }
+  
+  getPrimary() {
+    return this._primary;
+  }
 
   public required() {
     this._nullable = false;
     return this;
+  }
+  
+  getRequired() {
+    return !this._nullable;
   }
 
   public unique() {
     this._unique = true;
     return this;
   }
+  
+  getUnique() {
+    return this._unique;
+  }
 
   public unsigned() {
     this._unsigned = true;
     return this;
+  }
+  
+  getUnsigned() {
+    return this._unsigned;
   }
 
   public autoIncrement() {
     this._autoIncrement = true;
     return this;
   }
+  
+  getAutoIncrement() {
+    return this._autoIncrement;
+  }
 
   public defaultSql(sql: string) {
     this._defaultSql = sql;
     return this;
+  }
+  
+  getDefaultSql() {
+    return this._defaultSql;
   }
 
   public foreignKey<MT>(classObject: object, matchProperty: keyof MT, onDelete = ForeignKeyOption.Cascade, OnUpdate = ForeignKeyOption.Cascade) {
@@ -134,6 +220,10 @@ class DatabaseColumn<T> {
       onUpdate: OnUpdate,
     };
     return this;
+  }
+  
+  getForeignKey() {
+    return this._foreignKey;
   }
 }
 
