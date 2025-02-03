@@ -49,6 +49,14 @@ export abstract class DeclarationStorage {
   private constructor() {}
 }
 
+export function getTable(classObject: object, declarationName = "default"): string {
+  return DeclarationStorage.getTable(classObject, declarationName).getDbName();
+}
+
+export function getColumn(classObject: object, property: string, declarationName = "default"): string { 
+  return DeclarationStorage.getColumn(classObject, property, declarationName).getDbName();
+}
+
 export class DatabaseDeclaration {
   private _name: string;
   private _tables: DatabaseTable<any>[] = [];
