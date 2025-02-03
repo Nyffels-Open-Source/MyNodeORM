@@ -1,21 +1,44 @@
 import {Factory} from "./factory.models.js";
 import {propertyType} from "./property.models.js";
 
+abstract class DeclarationStorage {
+  static declarations: { name: string, declaration: DatabaseDeclaration }[] = [];
+
+  static add(declaration: DatabaseDeclaration) {
+    if (this.declarations.find(x => x.name === declaration.name)) {
+      throw new Error(`Declaration with name ${declaration.name} already exists`);
+    }
+
+    this.declarations.push({
+      name: declaration.name, declaration
+    });
+  }
+
+  private constructor() {}
+}
+
 export class DatabaseDeclaration {
   private _name: string;
+  private _tables: DatabaseTable<any>[] = [];
+
+  get name() {
+    return this._name;
+  }
 
   constructor(name: string = "default") {
     this._name = name;
+    DeclarationStorage.add(this);
   }
 
-  public declareTable<T>(classObject: object, dbTableName: string) {
+  public declareTable<T>(classObject: object, dbTableName: string | null = null) {
     const factory = new Factory();
     const targetClass: any = factory.create(classObject as any);
-    return new DatabaseTable<T>(targetClass);
-  }
-
-  public commit() {
-    // TODO Save in runtime
+    const table = new DatabaseTable<T>(targetClass);
+    if (dbTableName) {
+      table.dbName(dbTableName);
+    }
+    this._tables.push(table);
+    return table;
   }
 }
 
@@ -23,16 +46,22 @@ class DatabaseTable<T> {
   private _dbName: string;
   private _columns!: DatabaseColumnCollection<T>;
 
+  get columns() {
+    return this._columns;
+  }
+
   constructor(targetClass: any) {
     this._dbName = targetClass.constructor.name;
-    const columns = Object.keys(targetClass);
+    this._columns = {} as DatabaseColumnCollection<T>;
+    for (const column of Object.keys(targetClass)) {
+      // @ts-ignore
+      this._columns[column] = new DatabaseColumn<T>(column as keyof T);
+    }
   }
 
-  private dbName(name: string) {
+  public dbName(name: string) {
     this._dbName = name;
   }
-
-  declareColumn(property: keyof T, dbColumnName: string) {}
 }
 
 export type DatabaseColumnCollection<T> = {
@@ -78,30 +107,30 @@ class DatabaseColumn<T> {
     this._unique = true;
     return this;
   }
-  
+
   public unsigned() {
     this._unsigned = true;
     return this;
   }
-  
+
   public autoIncrement() {
     this._autoIncrement = true;
     return this;
   }
-  
+
   public defaultSql(sql: string) {
     this._defaultSql = sql;
     return this;
   }
-  
+
   public foreignKey<MT>(classObject: object, matchProperty: keyof MT, onDelete = ForeignKeyOption.Cascade, OnUpdate = ForeignKeyOption.Cascade) {
     const factory = new Factory();
     const targetClass: any = factory.create(classObject as any);
-    
+
     this._foreignKey = {
-      table: targetClass.constructor.name, 
-      column: matchProperty as string, 
-      onDelete: onDelete, 
+      table: targetClass.constructor.name,
+      column: matchProperty as string,
+      onDelete: onDelete,
       onUpdate: OnUpdate,
     };
     return this;
