@@ -56,9 +56,28 @@ export function getTable(classObject: object, declarationName = "default"): stri
     .getDbName();
 }
 
+export function getTableByName(classObjectName: string, declarationName = "default"): string {
+  return DeclarationStorage.get(declarationName)
+    .declaration
+    .getTable(classObjectName)
+    .getDbName();
+}
+
 export function getColumn<T>(classObject: object, property: keyof T, declarationName = "default"): string {
   return DeclarationStorage.getColumn(classObject, property, declarationName)
     .getDbName();
+}
+
+export function getColumnByTableName<T>(classObjectName: string, property: keyof T, declarationName = "default"): string {
+  const table = DeclarationStorage.get(declarationName).declaration.getTable(classObjectName)
+  if (!table) {
+    throw new Error("Cant find table");
+  }
+  const column = table.getColumn(property);
+  if (!column) {
+    throw new Error("Cant find column");
+  }
+  return column.getDbName();
 }
 
 export class DatabaseDeclaration {
@@ -112,8 +131,10 @@ export class DatabaseDeclaration {
         if (!column) {
           continue;
         }
+        const foreignKey = column.getForeignKey();
+
         // @ts-ignore
-        schema[table.getDbName()].columns[columnname] = {
+        schema[table.getDbName()].columns[column.getDbName()] = {
           type: column.getType().type,
           primary: column.getPrimary(),
           nullable: column.getNullable(),
@@ -121,7 +142,12 @@ export class DatabaseDeclaration {
           unsigned: column.getUnsigned(),
           autoIncrement: column.getAutoIncrement(),
           defaultSql: column.getDefaultSql(),
-          foreignKey: column.getForeignKey(),
+          foreignKey: foreignKey ? {
+            table: getTableByName(foreignKey.table),
+            column: getColumnByTableName(foreignKey.table, foreignKey.column),
+            onDelete: foreignKey.onDelete,
+            onUpdate: foreignKey.onUpdate,
+          } : null
         };
       }
     }
@@ -223,10 +249,10 @@ class DatabaseColumn<T> {
   getRequired() {
     return !this._nullable;
   }
-  
+
   getNullable() {
     return this._nullable;
-  } 
+  }
 
   public unique() {
     this._unique = true;
