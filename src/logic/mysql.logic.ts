@@ -32,9 +32,9 @@ export function getConnection(skipNoConnectionError = true) {
   return (global as any).connection as Connection;
 }
 
-export function endConnection() {
+export async function endConnection() {
   if (!isNil((global as any).connection)) {
-    ((global as any).connection as mysql.Connection).end();
+    await ((global as any).connection as mysql.Connection).end();
     (global as any).connection = null;
   }
 }
@@ -55,7 +55,7 @@ export async function doMutation(sqlQuery: string, options: QueryOptions | null 
 
   if (isNil((global as any).connection)) {
     if (options.createConnectionWhenNoGlobalConnectionFound) {
-      await await setConnection();
+      await setConnection();
     } else {
       throw Error('No active MySQL connection found!');
     }
@@ -82,7 +82,7 @@ export async function doQuery<T = any>(sqlQuery: string, options: QueryOptions |
 
   if (isNil((global as any).connection)) {
     if (options.createConnectionWhenNoGlobalConnectionFound) {
-      await await setConnection();
+      await setConnection();
     } else {
       throw Error('No active MySQL connection found!');
     }

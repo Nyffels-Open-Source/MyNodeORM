@@ -1,3 +1,5 @@
+import {endConnection, getConnection, setConnection} from "../logic/index.js";
+
 export abstract class MigrationFileBuilder {
     public static GetFileTemplate() {
         return `import {MigrationBuilder} from '@nyffels/mynodeorm';
@@ -17,7 +19,7 @@ export class MigrationFile {
             You can add custom data here to be run after the migration plan.
         */
         
-        this._builder.execute(_version);
+        this._builder.execute(this._version);
     }
 }`;
     }
@@ -30,17 +32,32 @@ export class MigrationBuilder {
         this._queries.push(query);
     }
     
-    public execute(version: string) {
-        // TODO
-        // Start transaction
-        // Do all _queries 1 by 1. 
-        // if version === 0:
-        // scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
-        // scriptLines.push(`CREATE TABLE __myNodeORM (version INT NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
-        // scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES (${(latestMigrationVersion ?? "").split(".").find(x => x)});`);
-        // else
-        // scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES (${(latestMigrationVersion ?? "").split(".").find(x => x)});`);
-        // end
-        // end transaction
+    public async execute(version: number) {
+        await setConnection();
+        const connection = getConnection();
+        
+        await connection.beginTransaction();
+
+        try {
+            for (let query of this._queries) {
+                await connection.execute(query);
+            }
+
+            if (version === 0) {
+                await connection.execute("DROP TABLE IF EXISTS __myNodeORM;");
+                await connection.execute("CREATE TABLE __myNodeORM (version INT NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());");
+                await connection.execute(`INSERT INTO __myNodeORM (version) VALUES (${version});`);
+            } else {
+                await connection.execute(`INSERT INTO __myNodeORM (version) VALUES (${version});`);
+            }
+
+            await connection.commit();
+            console.log("✅  Migration executed successfully.");
+        } catch {
+            await connection.rollback();
+            console.log("X  Migration execution failed.");
+        }
+        
+        await endConnection();
     }
 }
