@@ -135,7 +135,7 @@ export class DatabaseDeclaration {
 
         // @ts-ignore
         schema[table.getDbName()].columns[column.getDbName()] = {
-          type: column.getType().type,
+          type: column.getSqlType(),
           primary: column.getPrimary(),
           nullable: column.getNullable(),
           unique: column.getUnique(),
@@ -230,6 +230,106 @@ class DatabaseColumn<T> {
 
   getType() {
     return this._type;
+  }
+
+  getSqlType(): string {
+    try {
+      const type: propertyType = this._type.type ?? "string";
+      let length = this._type.length;
+      
+      switch (type) {
+        case "string": {
+          const strLength = +(length ?? "255");
+          if (Number.isNaN(strLength)) {
+            console.error(`❌ Could not parse type length in property '${this.getDbName()}'.`);
+            process.exit(1);
+          }
+          if (strLength <= 0) {
+            console.error(`❌ Length cannot be lesser than 1 for type string in property '${this.getDbName()}'.`)
+            process.exit(1);
+          }
+          if (strLength > 65500) {
+            return "LONGTEXT";
+          } else {
+            return `VARCHAR(${strLength})`;
+          }
+        }
+        case "bigstring": {
+          return "LONGTEXT";
+        }
+        case "guid": {
+          return "VARCHAR(36)";
+        }
+        case "number": {
+          const lengths = (length ?? "255").split('.') ?? [];
+          if (lengths.length > 1) {
+            // DECIMAL
+            // @ts-ignore
+            const intLength = +lengths[0];
+            // @ts-ignore
+            const decimalLength = +lengths[1];
+            if (Number.isNaN(intLength)) {
+              console.error(`❌ Could not parse type length (size) in property '${this._dbName}'.`);
+              process.exit(1);
+            }
+            if (intLength <= 0) {
+              console.error(`❌ Length cannot be lesser than 1 for type number (size) in property '${this._dbName}'.`)
+              process.exit(1);
+            }
+            if (intLength > 65) {
+              console.error(`❌ Maximum length for type number (size) is 65 in property '${this._dbName}'.`);
+              process.exit(1);
+            }
+            if (Number.isNaN(decimalLength)) {
+              console.error(`❌ Could not parse type length (decimal) in property '${this._dbName}'.`);
+              process.exit(1);
+            }
+            if (decimalLength <= 0) {
+              console.error(`❌ Length cannot be lesser than 1 for type number (decimal) in property '${this._dbName}'.`)
+              process.exit(1);
+            }
+            if (decimalLength > 30) {
+              console.error(`❌ Maximum length for type number (decimal) is 30 in property '${this._dbName}'.`);
+              process.exit(1);
+            }
+            return `DECIMAL(${intLength}, ${decimalLength})`;
+          } else {
+            // @ts-ignore
+            const intLength = +lengths[0];
+            if (Number.isNaN(intLength)) {
+              console.error(`❌ Could not parse type length in property '${this._dbName}'.`);
+              process.exit(1);
+            }
+            if (intLength <= 0) {
+              console.error(`❌ Length cannot be lesser than 1 for type number in property '${this._dbName}'.`)
+              process.exit(1);
+            }
+            return intLength === 255 ? `INT` : `INT(${intLength})`;
+          }
+        }
+        case "bignumber": {
+          return "BIGINT";
+        }
+        case "boolean": {
+          return "TINYINT";
+        }
+        case "date": {
+          return "DATE";
+        }
+        case "time": {
+          return "TIME";
+        }
+        case "datetime": {
+          return "DATETIME";
+        }
+        default: {
+          console.error(`❌ MyNodeORM type '${type}' given in property '${this._dbName}' is not known to MyNodeORM.'`);
+          process.exit(1);
+        }
+      }
+    } catch (ex) {
+      return "VARCHAR(255)"; // Default to VARCHAR max length
+    }
   }
 
   public primary() {
