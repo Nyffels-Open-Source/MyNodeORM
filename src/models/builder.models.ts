@@ -54,31 +54,29 @@ export class QueryBuilder<T> {
     const columns = properties.map(p => {
       if ((typeof p) === "string") {
 
-        const column = DeclarationStorage.getColumn(this._classobject, p as string).getDbName();
-        const table = DeclarationStorage.getTable(this._classobject).getDbName();
-
-        if (isNil(column)) {
+        try {
+          const column = DeclarationStorage.getColumn(this._classobject, p as string).getDbName();
+          const table = DeclarationStorage.getTable(this._classobject).getDbName();
+          return `${table}.${column}`;
+        } catch {
           return "";
         }
-
-        return `${table}.${column}`;
       } else {
         try {
           const keys = Object.keys(p);
           if (!keys.includes('property')) {
             throw new Error('Incorrect selectValue object');
           }
-
-          const classobject = (p as SelectValue<T>).table;
-          const table = getTable(classobject ?? this._classobject);
-          const column = getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property as string);
-
-          if ((column ?? "").trim().length <= 0) {
+          
+          try {
+            const classobject = (p as SelectValue<T>).table;
+            const table = DeclarationStorage.getTable(classobject ?? this._classobject).getDbName();
+            const column = DeclarationStorage.getColumn(classobject ?? this._classobject, (p as SelectValue<T>).property as string).getDbName();
+            const noAliasQueryFragment = `${table}.${column}`;
+            return ((p as SelectValue<T>).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue<T>).alias}` : noAliasQueryFragment;
+          } catch {
             return "";
           }
-
-          const noAliasQueryFragment = `${table}.${column}`;
-          return ((p as SelectValue<T>).alias ?? "").length > 0 ? `${noAliasQueryFragment} AS ${(p as SelectValue<T>).alias}` : noAliasQueryFragment;
         } catch (err) {
           console.warn(err);
           return "";
