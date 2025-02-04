@@ -187,8 +187,8 @@ if (args.includes("--generate-integration-script")) {
             break;
         }
 
-        columnSql.push(`INDEX \`fk_${key.table}_${key.column}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
-        columnSql.push(`CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+        columnSql.push(`INDEX \`fk_${table}_${key.sourceColumn}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+        columnSql.push(`CONSTRAINT \`fk_${table}_${key.sourceColumn}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
       const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
@@ -422,8 +422,8 @@ if (args.includes("--generate-integration-script")) {
               break;
           }
 
-          lines.push(`ADD INDEX \`fk_${key.table}_${key.column}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
-          lines.push(`ADD CONSTRAINT \`fk_${key.table}_${key.column}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+          lines.push(`ADD INDEX \`fk_${table}_${key.sourceColumn}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+          lines.push(`ADD CONSTRAINT \`fk_${table}_${key.sourceColumn}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
         }
       }
       
