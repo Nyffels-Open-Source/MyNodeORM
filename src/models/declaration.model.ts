@@ -1,6 +1,7 @@
 import {Factory} from "./factory.models.js";
 import {propertyType} from "./property.models.js";
 import {Connection} from "mysql2/promise";
+import {DatabaseSchema} from "./schema.models.js";
 
 export abstract class DeclarationStorage {
   static declarations: { name: string, declaration: DatabaseDeclaration }[] = [];
@@ -14,7 +15,7 @@ export abstract class DeclarationStorage {
       name: declaration.name, declaration
     });
   }
-  
+
   static get(name: string = "default") {
     const declaration = this.declarations.find(x => x.name === name);
     if (!declaration) {
@@ -38,7 +39,7 @@ export abstract class DeclarationStorage {
     return table;
   }
 
-  static getColumn<T = any>(classObject: object, property: keyof T, declarationName = "default"): DatabaseColumn<T> {    
+  static getColumn<T = any>(classObject: object, property: keyof T, declarationName = "default"): DatabaseColumn<T> {
     const table = this.getTable(classObject, declarationName);
     const column = table.getColumn(property)
     if (!column) {
@@ -50,12 +51,14 @@ export abstract class DeclarationStorage {
   private constructor() {}
 }
 
-export function getTable(classObject: object, declarationName = "default"): string {   
-  return DeclarationStorage.getTable(classObject, declarationName).getDbName();
+export function getTable(classObject: object, declarationName = "default"): string {
+  return DeclarationStorage.getTable(classObject, declarationName)
+    .getDbName();
 }
 
 export function getColumn<T>(classObject: object, property: keyof T, declarationName = "default"): string {
-  return DeclarationStorage.getColumn(classObject, property, declarationName).getDbName();
+  return DeclarationStorage.getColumn(classObject, property, declarationName)
+    .getDbName();
 }
 
 export class DatabaseDeclaration {
@@ -66,15 +69,15 @@ export class DatabaseDeclaration {
   get name() {
     return this._name;
   }
-  
+
   get tables() {
     return this._tables;
   }
-  
+
   getConnectionOptions() {
     return this._options;
   }
-  
+
   getTable<T = any>(name: string) {
     const table = this._tables.find(t => t.name === name);
     if (!table) {
@@ -99,6 +102,31 @@ export class DatabaseDeclaration {
     this._tables.push(table);
     return table;
   }
+
+  public convertToDatabaseSchema() {
+    const schema: DatabaseSchema = {};
+    for (const table of this._tables) {
+      schema[table.getDbName()] = {columns: {}};
+      for (const columnname of Object.keys(table.columns)) {
+        const column = table.columns[columnname];
+        if (!column) {
+          continue;
+        }
+        // @ts-ignore
+        schema[table.getDbName()].columns[columnname] = {
+          type: column.getType().type,
+          primary: column.getPrimary(),
+          nullable: column.getNullable(),
+          unique: column.getUnique(),
+          unsigned: column.getUnsigned(),
+          autoIncrement: column.getAutoIncrement(),
+          defaultSql: column.getDefaultSql(),
+          foreignKey: column.getForeignKey(),
+        };
+      }
+    }
+    return schema;
+  }
 }
 
 class DatabaseTable<T> {
@@ -109,7 +137,7 @@ class DatabaseTable<T> {
   get columns() {
     return this._columns;
   }
-  
+
   getColumn(name: keyof T) {
     const column = this._columns[name as keyof T];
     if (!column) {
@@ -117,7 +145,7 @@ class DatabaseTable<T> {
     }
     return column;
   }
-  
+
   get name() {
     return this._name;
   }
@@ -164,16 +192,16 @@ class DatabaseColumn<T> {
     this._dbName = name;
     return this;
   }
-  
+
   getDbName() {
     return this._dbName;
   }
 
   public type(type: propertyType, length: string | null = null) {
-    this._type = {type, length};
+    this._type = {type: type ?? "string", length};
     return this;
   }
-  
+
   getType() {
     return this._type;
   }
@@ -182,7 +210,7 @@ class DatabaseColumn<T> {
     this._primary = true;
     return this;
   }
-  
+
   getPrimary() {
     return this._primary;
   }
@@ -191,16 +219,20 @@ class DatabaseColumn<T> {
     this._nullable = false;
     return this;
   }
-  
+
   getRequired() {
     return !this._nullable;
   }
+  
+  getNullable() {
+    return this._nullable;
+  } 
 
   public unique() {
     this._unique = true;
     return this;
   }
-  
+
   getUnique() {
     return this._unique;
   }
@@ -209,7 +241,7 @@ class DatabaseColumn<T> {
     this._unsigned = true;
     return this;
   }
-  
+
   getUnsigned() {
     return this._unsigned;
   }
@@ -218,7 +250,7 @@ class DatabaseColumn<T> {
     this._autoIncrement = true;
     return this;
   }
-  
+
   getAutoIncrement() {
     return this._autoIncrement;
   }
@@ -227,7 +259,7 @@ class DatabaseColumn<T> {
     this._defaultSql = sql;
     return this;
   }
-  
+
   getDefaultSql() {
     return this._defaultSql;
   }
@@ -244,7 +276,7 @@ class DatabaseColumn<T> {
     };
     return this;
   }
-  
+
   getForeignKey() {
     return this._foreignKey;
   }
