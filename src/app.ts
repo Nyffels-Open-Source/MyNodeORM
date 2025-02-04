@@ -16,38 +16,7 @@ if (args.some(e => /^--workdir=*./.test(e))) {
 }
 console.log(`• Working from ${workdir}.`);
 
-if (args.includes("--create-config")) {
-  const fileLocationRaw = args.find(a => a.includes('--location='));
-  const fileLocation = fileLocationRaw ? fileLocationRaw.replace("--location=", "") : "./";
-  const fullPath = fileLocation.startsWith(".") ? path.join(workdir, fileLocation) : fileLocation;
-
-  const schemaScriptPath = path.join(fullPath, "mynodeorm-migration.ts");
-  if (fs.existsSync(schemaScriptPath)) {
-    console.log(`• Schema config file already exists. Delete existing one...`);
-    fs.unlinkSync(schemaScriptPath);
-  }
-
-  // TODO Scan for classes?
-
-  let migrationsScript = `
-    import {createMigration} from '@nyffels/mynodeorm/dist/logic/migration.logic.js';
-    
-    const classes = [
-      /* Enter the classes you wish to include */
-    ]
-    
-    const args = process.argv.slice(2);
-    if (!args.some(e => /^--name=*./.test(e))) {
-        console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
-        process.exit(1);
-    }
-    const name = args.find((a) => a.includes('--name='))?.replace('--name=', '') ?? "";
-    const migrationLocationPath = args.find((a) => a.includes('--migration-location='))?.replace('--migration-location=', '') ?? "./";
-    createMigration(name, migrationLocationPath, classes);
-  `;
-  fs.writeFileSync(schemaScriptPath, migrationsScript, {encoding: "utf8"});
-  console.log("✅ Schema config file created and saved at " + schemaScriptPath + ".");
-} else if (args.includes("--generate-integration-script")) {
+if (args.includes("--generate-integration-script")) {
   const runIntegration = async () => {
     const connectionstringRaw = args.find(a => a.includes('--connectionstring='));
     if (!connectionstringRaw) {
@@ -476,6 +445,7 @@ if (args.includes("--create-config")) {
 
     return;
   }
+  
   runIntegration()
     .then(() => {
       console.log("✅ Integration completed.");
