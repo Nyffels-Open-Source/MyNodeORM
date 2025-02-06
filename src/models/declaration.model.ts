@@ -334,6 +334,7 @@ class DatabaseColumn<T> {
 
   public primary() {
     this._primary = true;
+    this._nullable = false;
     return this;
   }
 
