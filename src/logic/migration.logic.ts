@@ -132,8 +132,9 @@ export function createMigration(name: string, migrationLocationPath: string) {
             break;
         }
 
-        columnSql.push(`INDEX \`fk_${table}_${key.sourceColumn}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
-        columnSql.push(`CONSTRAINT \`fk_${table}_${key.sourceColumn}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+        const fName = `${table}_${key.sourceColumn}`.substring(0, 57);
+        columnSql.push(`INDEX \`fk_${fName}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+        columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
       const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
@@ -240,8 +241,9 @@ export function createMigration(name: string, migrationLocationPath: string) {
             break;
         }
 
-        columnSql.push(`INDEX \`fk_${table}_${key.sourceColumn}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
-        columnSql.push(`CONSTRAINT \`fk_${table}_${key.sourceColumn}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+        const fName = `${table}_${key.sourceColumn}`.substring(0, 57);
+        columnSql.push(`INDEX \`fk_${fName}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+        columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
       const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
@@ -454,8 +456,9 @@ export function createMigration(name: string, migrationLocationPath: string) {
               onUpdateAction = "CASCADE";
               break;
           }
-          lines.push(`ADD INDEX \`fk_${table}_${key.sourceColumn}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
-          lines.push(`ADD CONSTRAINT \`fk_${table}_${key.sourceColumn}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
+          const fName = `${table}_${key.sourceColumn}`.substring(0, 57);
+          lines.push(`ADD INDEX \`fk_${fName}_idx\` (\`${key.sourceColumn}\` ASC) VISIBLE`);
+          lines.push(`ADD CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
         }
       }
       if (lines.length > 0) { queryLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`); }
