@@ -390,7 +390,7 @@ if (args.includes("--generate-integration-script")) {
       }
       
       if (dropkeys.length > 0) {
-        scriptLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``).join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
+        scriptLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``).join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)};`);
       }
       
       if (addedKeys.length > 0) {
