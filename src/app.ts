@@ -356,7 +356,7 @@ if (args.includes("--generate-integration-script")) {
         lines = lines.concat(addColumnScript);
       }
       if (dropColumnScript) {
-        lines.concat(dropColumnScript);
+        lines = lines.concat(dropColumnScript);
       }
       if (modifyColumnScript.length > 0) {
         lines = lines.concat(modifyColumnScript);

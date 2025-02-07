@@ -403,8 +403,12 @@ export function createMigration(name: string, migrationLocationPath: string) {
       if (addColumnScript.length > 0) {
         lines = lines.concat(addColumnScript);
       }
-      if (dropColumnScript) { lines.concat(dropColumnScript); }
-      if (modifyColumnScript.length > 0) { lines = lines.concat(modifyColumnScript); }
+      if (dropColumnScript) {
+        lines = lines.concat(dropColumnScript);
+      }
+      if (modifyColumnScript.length > 0) {
+        lines = lines.concat(modifyColumnScript);
+      }
       if (redoPrimary) {
         let indexExists = false; // @ts-ignore 
         for (const column of Object.keys(oldSchema[table].columns)) { // @ts-ignore 
