@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import {DatabaseSchema} from "./models/schema.models.js";
 import mysql, {RowDataPacket} from "mysql2/promise";
 import {createRequire} from 'module';
-import {uniq} from "lodash-es";
+import {difference, intersection, uniq} from "lodash-es";
 import {ForeignKeyOption} from "./models/index.js";
 
 const require = createRequire(import.meta.url);
@@ -213,15 +213,9 @@ if (args.includes("--generate-integration-script")) {
         continue;
       }
 
-      const columnsToAdd = Object.keys(migrationTableSchema)
-        .filter(e => !Object.keys(dbTableSchema)
-          .includes(e));
-      const columnsToDelete = Object.keys(dbTableSchema)
-        .filter(e => !Object.keys(migrationTableSchema)
-          .includes(e));
-      const columnsToCheck = Object.keys(migrationTableSchema)
-        .filter(e => Object.keys(dbTableSchema)
-          .includes(e));
+      const columnsToAdd = difference(Object.keys(migrationTableSchema), Object.keys(dbTableSchema));
+      const columnsToDelete = difference(Object.keys(dbTableSchema), Object.keys(migrationTableSchema));
+      const columnsToCheck = intersection(Object.keys(migrationTableSchema), Object.keys(dbTableSchema));
 
       if (columnsToAdd.length > 0) {
         for (const column of columnsToAdd) {

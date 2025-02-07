@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import {mkdirSync} from "fs";
-import {uniq} from "lodash-es";
+import {difference, intersection, uniq} from "lodash-es";
 import {DatabaseSchema} from "../models/schema.models.js";
 import {DatabaseDeclaration, DeclarationStorage, ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 
@@ -137,7 +137,10 @@ export function createMigration(name: string, migrationLocationPath: string) {
         columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
+      const sql = `CREATE TABLE ${table}
+                   (
+                       ${columnSql.join(', ')}
+                   );`;
       queryLines.push(sql);
     }
 
@@ -246,7 +249,10 @@ export function createMigration(name: string, migrationLocationPath: string) {
         columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}(${columnSql.join(', ')});`;
+      const sql = `CREATE TABLE ${table}
+                   (
+                       ${columnSql.join(', ')}
+                   );`;
       queryLines.push(sql);
     }
 
@@ -267,15 +273,9 @@ export function createMigration(name: string, migrationLocationPath: string) {
         continue;
       }
 
-      const columnsToAdd = Object.keys(oldTableSchema)
-        .filter(e => !Object.keys(dbTableSchema)
-          .includes(e));
-      const columnsToDelete = Object.keys(dbTableSchema)
-        .filter(e => !Object.keys(oldTableSchema)
-          .includes(e));
-      const columnsToCheck = Object.keys(oldTableSchema)
-        .filter(e => Object.keys(dbTableSchema)
-          .includes(e));
+      const columnsToAdd = difference(Object.keys(oldTableSchema), Object.keys(dbTableSchema));
+      const columnsToDelete = difference(Object.keys(dbTableSchema), Object.keys(oldTableSchema));
+      const columnsToCheck = intersection(Object.keys(oldTableSchema), Object.keys(dbTableSchema));
 
       if (columnsToAdd.length > 0) {
         for (const column of columnsToAdd) {
