@@ -3,7 +3,7 @@ import fs from "node:fs";
 import {mkdirSync} from "fs";
 import {difference, intersection, uniq} from "lodash-es";
 import {DatabaseSchema} from "../models/schema.models.js";
-import {DatabaseDeclaration, DeclarationStorage, ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
+import {DeclarationStorage, ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 
 export function createMigration(name: string, migrationLocationPath: string) {
   if (!name) {

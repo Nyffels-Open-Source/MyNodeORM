@@ -125,7 +125,10 @@ export class DatabaseDeclaration {
   public convertToDatabaseSchema() {
     const schema: DatabaseSchema = {};
     for (const table of this._tables) {
-      schema[table.getDbName()] = {columns: {}};
+      if (!schema[table.getDbName()]) {
+        schema[table.getDbName()] = {columns: {}}; 
+      }
+      
       for (const columnname of Object.keys(table.columns)) {
         const column = table.columns[columnname];
         if (!column) {
