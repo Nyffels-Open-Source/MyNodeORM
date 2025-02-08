@@ -467,9 +467,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
       }
       if (lines.length > 0) { queryLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`); }
     }
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `  
-         this._builder.addQuery('${q.replaceAll("'", "\\'")}');`)
-      .join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
     migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
     fs.writeFileSync(path.join(migrationLocation,
