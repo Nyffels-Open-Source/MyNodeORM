@@ -137,10 +137,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
         columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}
-                   (
-                       ${columnSql.join(', ')}
-                   );`;
+      const sql = `CREATE TABLE ${table} (${columnSql.join(', ')});`;
       queryLines.push(sql);
     }
 
@@ -249,10 +246,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
         columnSql.push(`CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
       }
 
-      const sql = `CREATE TABLE ${table}
-                   (
-                       ${columnSql.join(', ')}
-                   );`;
+      const sql = `CREATE TABLE ${table} (${columnSql.join(', ')});`;
       queryLines.push(sql);
     }
 
