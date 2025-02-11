@@ -45,14 +45,14 @@ export class MigrationBuilder {
 
             if (version === 0) {
                 await connection.execute("DROP TABLE IF EXISTS __myNodeORM;");
-                await connection.execute("CREATE TABLE __myNodeORM (version INT NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());");
+                await connection.execute("CREATE TABLE __myNodeORM (version INT NOT NULL, date DATETIME NOT NULL DEFAULT NOW());");
                 await connection.execute(`INSERT INTO __myNodeORM (version) VALUES (${version});`);
             } else {
                 await connection.execute(`INSERT INTO __myNodeORM (version) VALUES (${version});`);
             }
 
             await connection.commit();
-            console.log("✅  Migration executed successfully.");
+            console.log(`✅  Migration ${version} executed successfully.`);
         } catch {
             await connection.rollback();
             console.log("X  Migration execution failed.");
