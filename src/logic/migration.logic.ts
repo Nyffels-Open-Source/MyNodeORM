@@ -5,6 +5,11 @@ import {difference, intersection, uniq} from "lodash-es";
 import {DatabaseSchema} from "../models/schema.models.js";
 import {DeclarationStorage, ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 
+/**
+ * Create a new migration.
+ * @param name Give the migration a name.
+ * @param migrationLocationPath The location where the migration folder resides.
+ */
 export function createMigration(name: string, migrationLocationPath: string) {
   if (!name) {
     console.error("❌ Name is required for a migration. Use '--name={{name}}' to declare a name of this migration.");
@@ -469,6 +474,15 @@ export function createMigration(name: string, migrationLocationPath: string) {
     console.log("• Migration file created.");
   }
   console.log("✅  Migration completed.");
+}
+
+/**
+ * Update a database by the available migrations.
+ * @param migrationLocationPath The location where the migration folder resides.
+ * @param version What version do you want to limit the update to. Leave empty or null to go to the latest available version.
+ */
+export function updateDatabase(migrationLocationPath: string, version: number | null = null) {
+  // TODO
 }
 
 function getDateFormat() {
