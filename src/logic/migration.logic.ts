@@ -29,8 +29,6 @@ export function createMigration(name: string, migrationLocationPath: string) {
         .map(f => f.name);
 
     let version = 0;
-    const migrationName = `${version}.${getDateFormat()}_${name}`;
-
     console.log("• Retrieving old schema...");
     let oldSchema!: DatabaseSchema;
     if ((folders).length > 0) {
@@ -44,6 +42,8 @@ export function createMigration(name: string, migrationLocationPath: string) {
             .find(x => x) ?? ""), "schema.json"))
             .toString());
     }
+
+    const migrationName = `${version}.${getDateFormat()}_${name}`;
 
     console.log("• Retrieving current schema...");
     const currentSchema = DeclarationStorage.get()
@@ -464,7 +464,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
           uniq(addedUniqColumns)) { lines.push(`ADD UNIQUE INDEX ${column}_UNIQUE (${column} ASC) VISIBLE`); }
       }
       if (dropkeys.length > 0) {
-        queryLines.push(`                ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``)
+        queryLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``)
                 .join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
       }
       if
@@ -500,13 +500,12 @@ export function createMigration(name: string, migrationLocationPath: string) {
           lines.push(`ADD CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
         }
       }
-      if (lines.length > 0) { queryLines.push(`                ALTER TABLE ${table} ${lines.join(', ')};`); }
+      if (lines.length > 0) { queryLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`); }
     }
-    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
+    migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `        this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
     migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
     mkdirSync(path.join(migrationLocation, migrationName), {recursive: true});
-    fs.writeFileSync(path.join(migrationLocation,
-      migrationName, "migration-plan.ts"), migrationFileContent);
+    fs.writeFileSync(path.join(migrationLocation, migrationName, "migration-plan.ts"), migrationFileContent);
     console.log("• Migration file created.");
   }
   console.log("✅  Migration completed.");
