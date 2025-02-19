@@ -2,6 +2,9 @@ import {isNil} from 'lodash-es';
 import mysql, {Connection, ResultSetHeader} from 'mysql2/promise';
 import {DeclarationStorage} from "../models/index.js";
 
+/**
+ * Set a new connection to the database.
+ */
 export async function setConnection() {
   if (!isNil((global as any).connection)) {
     return;
@@ -25,6 +28,10 @@ export async function setConnection() {
   });
 }
 
+/**
+ * Retrieve the active MySQL connection.
+ * @param skipNoConnectionError If set to true, there will be no error thrown when there is no active MySql connection known.
+ */
 export function getConnection(skipNoConnectionError = true) {
   if (skipNoConnectionError && isNil((global as any).connection)) {
     throw Error('Unable to retrieve an active MySQL connection!');
@@ -32,6 +39,9 @@ export function getConnection(skipNoConnectionError = true) {
   return (global as any).connection as Connection;
 }
 
+/**
+ * End the active MySQL Connection.
+ */
 export async function endConnection() {
   if (!isNil((global as any).connection)) {
     await ((global as any).connection as mysql.Connection).end();
@@ -39,6 +49,11 @@ export async function endConnection() {
   }
 }
 
+/**
+ * Do a Query Mutation (Adjusting data). The expected output is of ResultSetHeader.
+ * @param sqlQuery The query you wish to execute.
+ * @param options Options for this query.
+ */
 export async function doMutation(sqlQuery: string, options: QueryOptions | null = null) {
   if (isNil(options)) {
     options = new QueryOptions();
@@ -66,6 +81,11 @@ export async function doMutation(sqlQuery: string, options: QueryOptions | null 
   return res as ResultSetHeader;
 }
 
+/**
+ * Do a Query query. The expected output type can be set by the TypeParameter T.
+ * @param sqlQuery The query you wish to execute.
+ * @param options Options for this query.
+ */
 export async function doQuery<T = any>(sqlQuery: string, options: QueryOptions | null = null) {
   if (isNil(options)) {
     options = new QueryOptions();
