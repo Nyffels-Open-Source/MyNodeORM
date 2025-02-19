@@ -419,12 +419,17 @@ export function createMigration(name: string, migrationLocationPath: string) {
           }
           if (hasDifferences) {
             let sql = "";
-            sql += `${column} ${migrationColumn.type}`;
-            if (migrationColumn.unsigned) { sql += ` UNSIGNED`; }
-            sql += ` ${migrationColumn.nullable
-              ? 'NULL' : 'NOT NULL'}`;
-            if (migrationColumn.defaultSql) { sql += ` DEFAULT ${migrationColumn.defaultSql}`; }
-            if (migrationColumn.autoIncrement) { sql += ` AUTO_INCREMENT`; }
+            sql += `${column} ${dbColumn.type}`;
+            if (dbColumn.unsigned) { 
+                sql += ` UNSIGNED`; 
+            }
+            sql += ` ${dbColumn.nullable ? 'NULL' : 'NOT NULL'}`;
+            if (dbColumn.defaultSql) { 
+                sql += ` DEFAULT ${dbColumn.defaultSql}`; 
+            }
+            if (dbColumn.autoIncrement) { 
+                sql += ` AUTO_INCREMENT`; 
+            }
             modifyColumnScript.push(`MODIFY COLUMN ${sql}`);
           }
         }
@@ -459,7 +464,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
           uniq(addedUniqColumns)) { lines.push(`ADD UNIQUE INDEX ${column}_UNIQUE (${column} ASC) VISIBLE`); }
       }
       if (dropkeys.length > 0) {
-        queryLines.push(`ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``)
+        queryLines.push(`                ALTER TABLE \`${table}\` ${dropkeys.map(k => `DROP FOREIGN KEY \`${k}\``)
                 .join(", ")}, ${dropkeys.map(k => `DROP INDEX \`${k}_idx\``)}`);
       }
       if
@@ -495,7 +500,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
           lines.push(`ADD CONSTRAINT \`fk_${fName}\` FOREIGN KEY (\`${key.sourceColumn}\`) REFERENCES \`${key.table}\` (\`${key.column}\`) ON DELETE ${onDeleteAction} ON UPDATE ${onUpdateAction}`);
         }
       }
-      if (lines.length > 0) { queryLines.push(`ALTER TABLE ${table} ${lines.join(', ')};`); }
+      if (lines.length > 0) { queryLines.push(`                ALTER TABLE ${table} ${lines.join(', ')};`); }
     }
     migrationFileContent = migrationFileContent.replace("{{{{TEMPLATE-DATA}}}}", queryLines.map(q => `this._builder.addQuery('${q.replaceAll("'", "\\'")}');`).join("\n"));
     migrationFileContent = migrationFileContent.replace("{{{{VERSION}}}}", version.toString());
