@@ -566,12 +566,15 @@ export async function updateDatabase(migrationLocationPath: string, version: num
     }
 
     for (const v of versions) {
-        const migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan");
+        let migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.js");
+        if (!fs.existsSync(migrationPlanPath)) {
+            migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.ts");
+        }
         if (!fs.existsSync(migrationPlanPath)) {
             throw new Error("Could not find migration plan " + migrationPlanPath);
         }
 
-        const Plan = require(migrationPlanPath);
+        const Plan = await import('file://' + migrationPlanPath);
         const plan = new Plan.MigrationFile();
         await plan.migrate();
     }

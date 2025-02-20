@@ -19,7 +19,7 @@ export class MigrationFile {
             You can add custom data here to be run after the migration plan.
         */
         
-        this._builder.execute(this._version);
+        await this._builder.execute(this._version);
     }
 }`;
     }
