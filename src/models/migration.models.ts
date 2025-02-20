@@ -35,6 +35,13 @@ export class MigrationBuilder {
     public async execute(version: number) {
         await setConnection();
         const connection = getConnection();
+
+        const [rows, fields] = await connection.query('SELECT locked FROM __myNodeORM LIMIT 1');
+        if ((rows as any[]).length > 0 && (rows as any[])[0].locked === 1) {
+            console.log(`X  Migration table locked. Execution has been skipped.`);
+            return;
+        }
+        await connection.execute('UPDATE __myNodeORM SET locked = 1');
         
         await connection.beginTransaction();
 
@@ -59,5 +66,6 @@ export class MigrationBuilder {
         }
         
         await endConnection();
+        await connection.execute('UPDATE __myNodeORM SET locked = 0');
     }
 }
