@@ -303,13 +303,13 @@ export function createMigration(name: string, migrationLocationPath: string) {
                 continue;
             }
 
-            const columnsToAdd = difference(Object.keys(oldTableSchema), Object.keys(dbTableSchema));
-            const columnsToDelete = difference(Object.keys(dbTableSchema), Object.keys(oldTableSchema));
+            const columnsToAdd = difference(Object.keys(dbTableSchema), Object.keys(oldTableSchema));
+            const columnsToDelete = difference(Object.keys(oldTableSchema), Object.keys(dbTableSchema));
             const columnsToCheck = intersection(Object.keys(oldTableSchema), Object.keys(dbTableSchema));
 
             if (columnsToAdd.length > 0) {
                 for (const column of columnsToAdd) {
-                    const data = oldTableSchema[column];
+                    const data = dbTableSchema[column];
 
                     if (data === undefined) {
                         continue;
