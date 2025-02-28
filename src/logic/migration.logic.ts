@@ -576,7 +576,11 @@ export async function updateDatabase(migrationLocationPath: string, version: num
 
         const Plan = await import('file://' + migrationPlanPath);
         const plan = new Plan.MigrationFile();
-        await plan.migrate();
+        try {
+            await plan.migrate();   
+        } catch (e) {
+            process.exit(1);
+        }
     }
 
     console.log(`✅  Database is up-to-date!`);
