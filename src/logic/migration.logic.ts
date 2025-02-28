@@ -518,9 +518,10 @@ export function createMigration(name: string, migrationLocationPath: string) {
  */
 export async function updateDatabase(migrationLocationPath: string, version: number | null = null) {
     const migrationLocation = path.join(process.cwd(), migrationLocationPath, "migrations");
+    console.log("• Update database requested.");
 
     if (!fs.existsSync(migrationLocation)) {
-        throw new Error("X Migration location does not exists. Can not execute migration!");
+        throw new Error("❌ Migration location does not exists. Can not execute migration!");
     }
 
     const folders = fs.readdirSync(migrationLocation, {withFileTypes: true})
@@ -541,12 +542,12 @@ export async function updateDatabase(migrationLocationPath: string, version: num
     }
 
     if (versions.length <= 0) {
-        throw new Error("No viable versions found inside the migrations folder!");
+        throw new Error("❌ No viable versions found inside the migrations folder!");
     }
 
     versions = sortBy(versions, version => version.version);
     if (version !== null && !versions.find(v => v.version == version)) {
-        throw new Error("Requested version doesn't exist.");
+        throw new Error("❌ Requested version doesn't exist.");
     }
 
     let currentVersion: number | null = null;
@@ -566,6 +567,7 @@ export async function updateDatabase(migrationLocationPath: string, version: num
     }
 
     for (const v of versions) {
+        console.log("• migrate to version " + v.version + ".");
         let migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.js");
         if (!fs.existsSync(migrationPlanPath)) {
             migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.ts");
@@ -578,7 +580,8 @@ export async function updateDatabase(migrationLocationPath: string, version: num
         const plan = new Plan.MigrationFile();
         try {
             await plan.migrate();   
-        } catch (e) {
+        } catch (e: any) {
+            console.log("❌ Error while migrating: " + e?.toString());
             process.exit(1);
         }
     }
