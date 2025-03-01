@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import {mkdirSync} from "fs";
-import {difference, intersection, sortBy, uniq} from "lodash-es";
+import {difference, intersection, orderBy, sortBy, uniq} from "lodash-es";
 import {DatabaseSchema} from "../models/schema.models.js";
 import {DeclarationStorage, ForeignKeyOption, MigrationFileBuilder} from "../models/index.js";
 import {doQuery, setConnection} from "./mysql.logic.js";
@@ -554,7 +554,7 @@ export async function updateDatabase(migrationLocationPath: string, version: num
     await setConnection();
     const nodeCountRes = await doQuery<{ nodeCount: number }>('SELECT count(*) as nodeCount FROM information_schema.TABLES WHERE TABLE_NAME = \'__myNodeORM\'');
     if ((nodeCountRes.find(x => x)?.nodeCount ?? 0) > 0) {
-        const versionRes = await doQuery<{ version: number }>('SELECT version FROM __myNodeORM ORDER BY date DESC LIMIT 1;');
+        const versionRes = await doQuery<{ version: number }>('SELECT version FROM __myNodeORM ORDER BY version DESC LIMIT 1;');
         currentVersion = versionRes.find(x => x)?.version as number;
     }
 
@@ -566,7 +566,7 @@ export async function updateDatabase(migrationLocationPath: string, version: num
         versions = versions.filter(v => v.version <= version);
     }
 
-    for (const v of versions) {
+    for (const v of orderBy(versions, version => version)) {
         console.log("• migrate to version " + v.version + ".");
         let migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.js");
         if (!fs.existsSync(migrationPlanPath)) {
