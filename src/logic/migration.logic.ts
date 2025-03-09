@@ -28,19 +28,17 @@ export function createMigration(name: string, migrationLocationPath: string) {
         .filter(f => f.isDirectory())
         .map(f => f.name);
 
-    let version = 0;
+    let version = getDateFormat();
+    let isFirst = false;
     console.log("• Retrieving old schema...");
     let oldSchema!: DatabaseSchema;
     if ((folders).length > 0) {
-        // @ts-ignore
-        version = (folders.map(f => +f.split(".")[0])
-            .sort()
-            .reverse()[0]) + 1;
-
         oldSchema = JSON.parse(fs.readFileSync(path.join(migrationLocation, (folders.sort()
             .reverse()
             .find(x => x) ?? ""), "schema.json"))
             .toString());
+    } else {
+        isFirst = true;
     }
 
     const migrationName = `${getDateFormat()}_${name}`;
@@ -55,7 +53,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
 
     console.log("• Schema retrieved and saved.");
 
-    if (version === 0) {
+    if (isFirst) {
         console.log("• Creating migration file...");
 
         let migrationFileContent = MigrationFileBuilder.GetFileTemplate();
