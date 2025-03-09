@@ -43,7 +43,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
             .toString());
     }
 
-    const migrationName = `${version}.${getDateFormat()}_${name}`;
+    const migrationName = `${getDateFormat()}_${name}`;
 
     console.log("• Retrieving current schema...");
     const currentSchema = DeclarationStorage.get()
@@ -589,13 +589,14 @@ export async function updateDatabase(migrationLocationPath: string, version: num
     console.log(`✅  Database is up-to-date!`);
 }
 
-function getDateFormat() {
+function getDateFormat(): string {
     const date = new Date();
-    const year = date.getFullYear()
-        .toString();
-    const month = (date.getMonth() + 1).toString();
-    const day = date.getDate()
-        .toString();
+    const year = date.getFullYear().toString().padStart(4, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
 
-    return year + month + day;
+    return `${year}${month}${day}${hours}${minutes}${seconds}`;
 }
