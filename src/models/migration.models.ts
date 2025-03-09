@@ -54,9 +54,9 @@ export class MigrationBuilder {
 
       await connection.commit();
       console.log(`✅  Migration ${version} executed successfully.`);
-    } catch {
+    } catch (err) {
       await connection.rollback();
-      console.log("❌  Migration execution failed.");
+      console.log("❌  Migration execution failed. Error: " + err);
     }
 
     await endConnection();
