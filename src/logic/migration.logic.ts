@@ -516,7 +516,7 @@ export function createMigration(name: string, migrationLocationPath: string) {
  * @param migrationLocationPath The location where the migration folder resides.
  * @param version What version do you want to limit the update to. Leave empty or null to go to the latest available version.
  */
-export async function updateDatabase(migrationLocationPath: string, version: number | null = null) {
+export async function updateDatabase(migrationLocationPath: string, version: string | null = null) {
     const migrationLocation = path.join(process.cwd(), migrationLocationPath, "migrations");
     console.log("• Update database requested.");
 
@@ -528,15 +528,15 @@ export async function updateDatabase(migrationLocationPath: string, version: num
         .filter(f => f.isDirectory())
         .map(f => f.name);
 
-    let versions: { version: number, name: string }[] = [];
+    let versions: { version: string, name: string }[] = [];
     for (const folder of folders) {
-        const vStr = folder.split(".").find(x => x);
-        if (vStr === undefined || isNaN(+vStr)) {
+        const v = folder.split("_").find(x => x);
+        if (v === undefined) {
             continue;
         }
-
+        
         versions.push({
-            version: +vStr,
+            version: v ?? '',
             name: folder
         });
     }
@@ -550,23 +550,33 @@ export async function updateDatabase(migrationLocationPath: string, version: num
         throw new Error("❌ Requested version doesn't exist.");
     }
 
-    let currentVersion: number | null = null;
-    await setConnection();
-    const nodeCountRes = await doQuery<{ nodeCount: number }>('SELECT count(*) as nodeCount FROM information_schema.TABLES WHERE TABLE_NAME = \'__myNodeORM\'');
-    if ((nodeCountRes.find(x => x)?.nodeCount ?? 0) > 0) {
-        const versionRes = await doQuery<{ version: number }>('SELECT version FROM __myNodeORM ORDER BY date DESC LIMIT 1;');
-        currentVersion = versionRes.find(x => x)?.version as number;
-    }
-
-    if (currentVersion != null) {
-        versions = versions.filter(v => v.version > currentVersion);
-    }
-
-    if (version != null) {
-        versions = versions.filter(v => v.version <= version);
-    }
+    // let currentVersion: number | null = null;
+    // await setConnection();
+    // const nodeCountRes = await doQuery<{ nodeCount: number }>('SELECT count(*) as nodeCount FROM information_schema.TABLES WHERE TABLE_NAME = \'__myNodeORM\'');
+    // if ((nodeCountRes.find(x => x)?.nodeCount ?? 0) > 0) {
+    //     const versionRes = await doQuery<{ version: number }>('SELECT version FROM __myNodeORM ORDER BY date DESC LIMIT 1;');
+    //     currentVersion = versionRes.find(x => x)?.version as number;
+    // }
+    //
+    // if (currentVersion != null) {
+    //     versions = versions.filter(v => v.version > currentVersion);
+    // }
+    //
+    // if (version != null) {
+    //     versions = versions.filter(v => v.version <= version);
+    // }
+    
+    // TODO Collect all version available
+    await setConnection(); 
+    const [ivs] = await doQuery<{version: string, DATE: Date}[]>('SELECT * FROM __myNodeORM');
+    
+    const unappliedVersion = versions.map(v => v.version).filter((item) => !(ivs ?? []).map(x => x.version).includes(item));
 
     for (const v of versions) {
+        if (!unappliedVersion.includes(v.version)) {
+            continue;
+        }
+        
         console.log("• migrate to version " + v.version + ".");
         let migrationPlanPath = path.join(migrationLocation, v.name, "migration-plan.js");
         if (!fs.existsSync(migrationPlanPath)) {

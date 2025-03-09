@@ -6,7 +6,7 @@ export abstract class MigrationFileBuilder {
 
 export class MigrationFile {
     private _builder = new MigrationBuilder();
-    private _version = {{{{VERSION}}}}
+    private _version = "{{{{VERSION}}}}";
     
     public async migrate() {
         /*
@@ -32,7 +32,7 @@ export class MigrationBuilder {
     this._queries.push(query);
   }
 
-  public async execute(version: number) {
+  public async execute(version: string) {
     await setConnection();
     const connection = getConnection();
 
@@ -43,15 +43,14 @@ export class MigrationBuilder {
     }
 
     try {
-      if (version === 0) {
-        await connection.execute("DROP TABLE IF EXISTS __myNodeORM;");
+      const [countRows]: any = await connection.query("SELECT COUNT(*) as count FROM information_schema.TABLES WHERE TABLE_NAME = '__myNodeORM';");
+      const count = countRows[0].count;
+      
+      if (count <= 0) {
         await connection.execute("CREATE TABLE __myNodeORM (version VARCHAR(255) NOT NULL, date DATETIME NOT NULL DEFAULT NOW());");
-        await connection.execute(`INSERT INTO __myNodeORM (version)
-                                  VALUES (${version});`);
-      } else {
-        await connection.execute(`INSERT INTO __myNodeORM (version)
-                                  VALUES (${version});`);
       }
+
+      await connection.execute(`INSERT INTO __myNodeORM (version) VALUES (${version});`);
 
       await connection.commit();
       console.log(`✅  Migration ${version} executed successfully.`);
