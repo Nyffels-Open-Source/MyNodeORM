@@ -45,7 +45,7 @@ export class MigrationBuilder {
     try {
       if (version === 0) {
         await connection.execute("DROP TABLE IF EXISTS __myNodeORM;");
-        await connection.execute("CREATE TABLE __myNodeORM (version INT NOT NULL, date DATETIME NOT NULL DEFAULT NOW());");
+        await connection.execute("CREATE TABLE __myNodeORM (version VARCHAR(255) NOT NULL, date DATETIME NOT NULL DEFAULT NOW());");
         await connection.execute(`INSERT INTO __myNodeORM (version)
                                   VALUES (${version});`);
       } else {

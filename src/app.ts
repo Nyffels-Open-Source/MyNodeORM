@@ -429,7 +429,7 @@ if (args.includes("--generate-integration-script")) {
     }
 
     scriptLines.push(`DROP TABLE IF EXISTS __myNodeORM;`)
-    scriptLines.push(`CREATE TABLE __myNodeORM (version INT NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
+    scriptLines.push(`CREATE TABLE __myNodeORM (version VARCHAR(255) NOT NULL, DATE DATETIME NOT NULL DEFAULT NOW());`);
     scriptLines.push(`INSERT INTO __myNodeORM (version) VALUES (${(latestMigrationVersion ?? "").split(".").find(x => x)});`);
 
     /* Save the script */
