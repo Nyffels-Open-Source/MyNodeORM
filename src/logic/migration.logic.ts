@@ -549,31 +549,14 @@ export async function updateDatabase(migrationLocationPath: string, version: str
     if (version !== null && !versions.find(v => v.version == version)) {
         throw new Error("❌ Requested version doesn't exist.");
     }
-
-    // let currentVersion: number | null = null;
-    // await setConnection();
-    // const nodeCountRes = await doQuery<{ nodeCount: number }>('SELECT count(*) as nodeCount FROM information_schema.TABLES WHERE TABLE_NAME = \'__myNodeORM\'');
-    // if ((nodeCountRes.find(x => x)?.nodeCount ?? 0) > 0) {
-    //     const versionRes = await doQuery<{ version: number }>('SELECT version FROM __myNodeORM ORDER BY date DESC LIMIT 1;');
-    //     currentVersion = versionRes.find(x => x)?.version as number;
-    // }
-    //
-    // if (currentVersion != null) {
-    //     versions = versions.filter(v => v.version > currentVersion);
-    // }
-    //
-    // if (version != null) {
-    //     versions = versions.filter(v => v.version <= version);
-    // }
     
-    // TODO Collect all version available
     await setConnection(); 
-    const [ivs] = await doQuery<{version: string, DATE: Date}[]>('SELECT * FROM __myNodeORM');
+    const ivs = await doQuery<{version: string, DATE: Date}>('SELECT * FROM __myNodeORM');
     
-    const unappliedVersion = versions.map(v => v.version).filter((item) => !(ivs ?? []).map(x => x.version).includes(item));
+    const unappliedVersions = getArrayDifference(versions.map(v => v.version), (ivs ?? []).map(v => v.version));
 
     for (const v of versions) {
-        if (!unappliedVersion.includes(v.version)) {
+        if (!unappliedVersions.includes(v.version)) {
             continue;
         }
         
@@ -630,4 +613,8 @@ function stringToDate(dateString: string): Date | null {
     }
 
     return date;
+}
+
+function getArrayDifference<T = any>(arrayA: T[], arrayB: T[]): T[] {
+    return arrayA.filter(item => !arrayB.includes(item));
 }
