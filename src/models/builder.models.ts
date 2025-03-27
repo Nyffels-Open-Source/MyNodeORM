@@ -423,12 +423,12 @@ export class QueryBuilder<T> {
           switch (content.type) {
             case WhereCompareType.BETWEEN:
             case WhereCompareType.NOTBETWEEN: {
-              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parseValue(this._classobject, property, content.value[0])} AND ${parseValue(this._classobject, property, content.value[1])}`);
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} ${parseValue(this._classobject, property, content.value[0])} AND ${parseValue(dbClassobject, property, content.value[1])}`);
               break;
             }
             case WhereCompareType.IN:
             case WhereCompareType.NOTIN: {
-              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(this._classobject, property, v))
+              propertyFragments.push(`${dbTable}.${dbColumn} ${content.type} (${content.value.map((v: any) => parseValue(dbClassobject, property, v))
                 .join(", ")})`);
               break;
             }
