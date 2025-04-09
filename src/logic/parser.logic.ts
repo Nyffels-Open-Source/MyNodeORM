@@ -9,7 +9,7 @@ import {DeclarationStorage} from "../models/index.js";
 export function parseString(value: string): string {
   return value != null && value.toString()
     .trim().length > 0 ? `'${value.toString()
-    .replace(/'/g, "''")}'` : 'NULL';
+    .replaceAll("'", "\\'").replaceAll("\\", "\\\\")}'` : 'NULL';
 }
 
 /**
@@ -58,7 +58,8 @@ export function parseValue(sourceClass: any, property: string, value: any) {
     return value.value;
   }
 
-  switch (DeclarationStorage.getColumn(sourceClass, property)?.getType().type) {
+  switch (DeclarationStorage.getColumn(sourceClass, property)
+    ?.getType().type) {
     case 'number':
       return parseNumber(value);
     case 'boolean':
