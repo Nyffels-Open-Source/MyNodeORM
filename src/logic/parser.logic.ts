@@ -8,9 +8,7 @@ import {DeclarationStorage} from "../models/index.js";
  */
 export function parseString(value: string): string {
   return value != null && value.toString()
-    .trim().length > 0 ? `'${value.toString()
-    .replaceAll("\\", "\\\\")}
-    .replaceAll("'", "\\'")'` : 'NULL';
+    .trim().length > 0 ? `'${value.toString().replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'` : 'NULL';
 }
 
 /**
