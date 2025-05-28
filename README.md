@@ -1,6 +1,9 @@
 # MyNodeORM
 A full-fledged ORM framework for NodeJS and MySQL with develop friendly code aimed to handle database migrations, MySQL Query builder / helper and data mapping.
 
+## Decapreated
+This app is no longer used due to migrations from nodeJS to .net core with EFCore. This will stay in archive mode and is up for adoption. Interested? Contact me at chesney@nyffels.be.
+
 ## Installation 
 Use the npm package manager to install "MySQL Query Builder" by running the command
 
